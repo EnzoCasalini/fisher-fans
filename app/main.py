@@ -9,6 +9,8 @@ from pathlib import Path
 import yaml
 
 from .routers import boats, log, reservations, trips, users
+from .database import Base, engine  # Importer la base et l'engin SQLAlchemy
+from .models_sqlalchemy import User, Boat, Trip, Reservation, Log, Page  # Importer les modèles SQLAlchemy
 
 # Initialisation de l'application FastAPI
 app = FastAPI(
@@ -48,6 +50,15 @@ def custom_openapi():
         print(f"FF_API.yaml not found at {openapi_path}")
         return app.openapi_schema  # Par défaut, utilise le schéma généré automatiquement
 
-
 # Associer le schéma OpenAPI personnalisé à l'application
 app.openapi = custom_openapi
+# Initialisation de la base de données
+@app.on_event("startup")
+async def startup_event():
+    """
+    Lors du démarrage de l'application, crée les tables nécessaires
+    dans la base de données en utilisant les modèles SQLAlchemy.
+    """
+    print("Initializing database...")
+    Base.metadata.create_all(bind=engine)
+    print("Database initialized!")
