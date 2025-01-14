@@ -1,19 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="fisher_fans" uuid="797b9d12-0e43-492d-b6a9-eae600750e6a">
+    <data-source source="LOCAL" name="fisherfans" uuid="9f13c120-fadb-4fd1-aede-7d3049e45542">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/fisher_fans.db</jdbc-url>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/fisherfans.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
+      <libraries>
+        <library>
+          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.43.0/org/xerial/sqlite-jdbc/3.43.0.0/sqlite-jdbc-3.43.0.0.jar</url>
+        </library>
+      </libraries>
     </data-source>
-    <data-source source="LOCAL" name="fisher_fans.db" uuid="68902887-ef52-4d4a-b05f-c22551bc7647">
+    <data-source source="LOCAL" name="FF" uuid="3ef4d46c-4e6f-4762-880b-8901f8bb2b4e">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/fisher_fans.db</jdbc-url>
+      <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/FF.db</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
+      <libraries>
+        <library>
+          <url>file://$APPLICATION_CONFIG_DIR$/jdbc-drivers/Xerial SQLiteJDBC/3.43.0/org/xerial/sqlite-jdbc/3.43.0.0/sqlite-jdbc-3.43.0.0.jar</url>
+        </library>
+      </libraries>
     </data-source>
   </component>
 </project>
