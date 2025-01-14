@@ -28,16 +28,26 @@ router = APIRouter(tags=['Users'])
     },
     tags=['Users'],
 )
-def get_v1_users(
-    last_name: Optional[str] = Query(None, alias='lastName'),
-    first_name: Optional[str] = Query(None, alias='firstName'),
-    email: Optional[str] = None,
-    status: Optional[Status] = None,
-) -> Union[List[PydanticUser], Error]:
+def get_users(
+    company: Optional[str] = None,  # Paramètre de filtre optionnel
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+) -> list[PydanticUser]:
     """
-    Get the list of users
+    Récupère une liste d'utilisateurs avec pagination et filtre par 'companyName'.
     """
-    pass
+    query = db.query(SQLAlchemyUser)
+
+    # Appliquer le filtre si 'company' est fourni
+    if company:
+        query = query.filter(SQLAlchemyUser.companyName.ilike(f"%{company}%"))
+
+    # Appliquer la pagination
+    users = query.offset(skip).limit(limit).all()
+
+    # Retourner la liste formatée avec Pydantic
+    return [UserRead.from_orm(user) for user in users]
 
 
 @router.post(
