@@ -12,7 +12,7 @@ from app.db import Base, engine
 
 from .routers import boats, log, reservations, trips, users
 from .database import Base, engine  # Importer la base et l'engin SQLAlchemy
-from .models_sqlalchemy import User, Boat, Trip, Reservation, Log, Page  # Importer les modèles SQLAlchemy
+from .models_sqlalchemy import User # Importer les modèles SQLAlchemy
 
 # Initialisation de l'application FastAPI
 app = FastAPI(
