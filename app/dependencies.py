@@ -9,4 +9,18 @@ from typing import List, Optional, Union
 
 from fastapi import Path, Query
 
-from .models import Boat, Error, Log, Page, Reservation, Status, Trip, User
+from .models import Boat, Error, Log, Page, Reservation, Status, Trip, UserRead
+
+from sqlalchemy.orm import Session
+from app.db import SessionLocal
+
+def get_db():
+    """
+    Dependency that provides a database session.
+    Automatically closes the session after use.
+    """
+    db: Session = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

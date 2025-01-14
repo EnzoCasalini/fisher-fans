@@ -8,6 +8,8 @@ from fastapi import FastAPI
 from pathlib import Path
 import yaml
 
+from app.db import Base, engine
+
 from .routers import boats, log, reservations, trips, users
 from .database import Base, engine  # Importer la base et l'engin SQLAlchemy
 from .models_sqlalchemy import User, Boat, Trip, Reservation, Log, Page  # Importer les modèles SQLAlchemy
@@ -24,6 +26,9 @@ app = FastAPI(
         }
     ],
 )
+
+# Créer les tables de la base de données
+Base.metadata.create_all(bind=engine)
 
 # Inclusion des routers
 app.include_router(boats.router)

@@ -4,10 +4,12 @@
 
 from __future__ import annotations
 
-from http.client import responses
+import uuid
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+from app.models import UserRead as PydanticUser
+from app.models_sqlalchemy import User as SQLAlchemyUser
 
-from fastapi import APIRouter
-from sqlalchemy.testing.suite.test_reflection import users
 
 from ..dependencies import *
 
@@ -16,7 +18,7 @@ router = APIRouter(tags=['Users'])
 
 @router.get(
     '/v1/users',
-    response_model=List[User],
+    response_model=List[PydanticUser],
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -30,8 +32,8 @@ def get_v1_users(
     last_name: Optional[str] = Query(None, alias='lastName'),
     first_name: Optional[str] = Query(None, alias='firstName'),
     email: Optional[str] = None,
-    status: Optional[Status2] = None,
-) -> Union[List[User], Error]:
+    status: Optional[Status] = None,
+) -> Union[List[PydanticUser], Error]:
     """
     Get the list of users
     """
@@ -49,16 +51,33 @@ def get_v1_users(
     },
     tags=['Users'],
 )
-def post_v1_users(body: User) -> Optional[Error]:
-    """
-    Create a new user
-    """
-    pass
+def create_user(user: PydanticUser, db: Session = Depends(get_db)) -> Optional[Error]:
+    # Générer un UUID si aucun ID n'est fourni
+    if not user.id:
+        user.id = str(uuid.uuid4())
+
+    db_user = SQLAlchemyUser(
+        id=user.id,  # UUID généré ici
+        firstName=user.firstName,
+        lastName=user.lastName,
+        email=user.email,
+        status=user.status,
+        birthDate=user.birthDate,
+        companyName=user.companyName,
+        boatLicense=user.boatLicense,
+        activityType=user.activityType,
+        siretNumber=user.siretNumber,
+        rcNumber=user.rcNumber,
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return UserRead.from_orm(db_user)
 
 
 @router.get(
     '/v1/users/{user_id}',
-    response_model=User,
+    response_model=PydanticUser,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -68,13 +87,15 @@ def post_v1_users(body: User) -> Optional[Error]:
     },
     tags=['Users'],
 )
-def get_v1_users_user_id(
-    user_id: str = Path(..., alias='userId')
-) -> Union[User, Error]:
-    """
-    Get a user by ID
-    """
-    pass
+def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
+    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Convertir en dictionnaire et transformer `id` en string
+    user_dict = user.__dict__
+    user_dict['id'] = str(user_dict['id'])
+    return UserRead(**user_dict)
 
 
 @router.put(

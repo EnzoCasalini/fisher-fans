@@ -96,7 +96,7 @@ class RateType(Enum):
     per_person = 'per person'
 
 
-class User(BaseModel):
+class UserRead(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the user')
     lastName: Optional[str] = None
     firstName: Optional[str] = None
@@ -120,6 +120,10 @@ class User(BaseModel):
     trips: Optional[List[Trip]] = None
     reservations: Optional[List[Reservation]] = None
     log: Optional[Log] = None
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
 
 
 class Trip(BaseModel):
@@ -146,7 +150,7 @@ class Trip(BaseModel):
     endTimes: Optional[List[time]] = Field(None, description='List of end times')
     passengerCount: Optional[int] = Field(None, description='Number of passengers')
     price: Optional[float] = Field(None, description='Price of the trip')
-    user: Optional[User] = None
+    user: Optional[UserRead] = None
     boat: Optional[Boat] = None
 
 
@@ -177,8 +181,8 @@ class Page(BaseModel):
     release: Optional[bool] = Field(
         None, description='Was the fish released? (true = yes, false = no)'
     )
-    owner: Optional[User] = None
+    owner: Optional[UserRead] = None
 
 
-User.update_forward_refs()
+UserRead.update_forward_refs()
 Log.update_forward_refs()
