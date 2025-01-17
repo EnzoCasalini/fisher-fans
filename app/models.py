@@ -111,7 +111,7 @@ class UserRead(BaseModel):
     companyName: Optional[str] = Field(
         None, description='Company name (empty if individual)'
     )
-    activityType: Optional[ActivityType] = Field(
+    activityType: Optional[str] = Field(
         None, description='Type of activity (rental or fishing guide)'
     )
     siretNumber: Optional[str] = Field(None, description='SIRET number')

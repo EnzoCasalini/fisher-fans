@@ -47,7 +47,7 @@ def get_users(
     users = query.offset(skip).limit(limit).all()
 
     # Retourner la liste formatée avec Pydantic
-    return [UserRead.from_orm(user) for user in users]
+    return [PydanticUser.from_orm(user) for user in users]
 
 
 @router.post(
@@ -82,7 +82,7 @@ def create_user(user: PydanticUser, db: Session = Depends(get_db)) -> Optional[E
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return UserRead.from_orm(db_user)
+    return PydanticUser.from_orm(db_user)
 
 
 @router.get(
@@ -105,12 +105,12 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
     # Convertir en dictionnaire et transformer `id` en string
     user_dict = user.__dict__
     user_dict['id'] = str(user_dict['id'])
-    return UserRead(**user_dict)
+    return PydanticUser(**user_dict)
 
 
 @router.put(
     '/v1/users/{user_id}',
-    response_model=None,
+    response_model=PydanticUser,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -120,13 +120,32 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
     },
     tags=['Users'],
 )
-def put_v1_users_user_id(
-    user_id: str = Path(..., alias='userId'), body: User = ...
-) -> Optional[Error]:
+def update_user(user_id: str, updated_user: PydanticUser, db: Session = Depends(get_db)) -> PydanticUser:
     """
-    Edit a user
+    Met à jour les informations d'un utilisateur spécifique par son ID.
     """
-    pass
+    # Rechercher l'utilisateur à mettre à jour
+    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Mettre à jour les champs
+    user.firstName = updated_user.firstName or user.firstName
+    user.lastName = updated_user.lastName or user.lastName
+    user.email = updated_user.email or user.email
+    user.status = updated_user.status or user.status
+    user.birthDate = updated_user.birthDate or user.birthDate
+    user.companyName = updated_user.companyName or user.companyName
+    user.boatLicense = updated_user.boatLicense or user.boatLicense
+    user.activityType = updated_user.activityType or user.activityType
+    user.siretNumber = updated_user.siretNumber or user.siretNumber
+    user.rcNumber = updated_user.rcNumber or user.rcNumber
+
+    # Sauvegarder les modifications
+    db.commit()
+    db.refresh(user)
+
+    return PydanticUser.from_orm(user)
 
 
 @router.delete(
@@ -141,10 +160,17 @@ def put_v1_users_user_id(
     },
     tags=['Users'],
 )
-def delete_v1_users_user_id(
-    user_id: str = Path(..., alias='userId')
-) -> Optional[Error]:
+def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
     """
-    Delete a user
+    Supprime un utilisateur spécifique par son ID.
     """
-    pass
+    # Rechercher l'utilisateur à supprimer
+    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Supprimer l'utilisateur
+    db.delete(user)
+    db.commit()
+
+    return None  # Retourne un code 204 (No Content)
