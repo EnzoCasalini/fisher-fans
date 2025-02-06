@@ -85,17 +85,6 @@ class Boat(BaseModel):
     )
     enginePower: Optional[int] = Field(None, description='Engine power (in horsepower)')
 
-
-class TripType(Enum):
-    daily = 'daily'
-    recurring = 'recurring'
-
-
-class RateType(Enum):
-    total = 'total'
-    per_person = 'per person'
-
-
 class UserRead(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the user')
     lastName: Optional[str] = None
@@ -125,34 +114,30 @@ class UserRead(BaseModel):
         orm_mode = True
         from_attributes = True
 
+class TripType(str, Enum):
+    daily = 'daily'
+    recurring = 'recurring'
+
+class RateType(str, Enum):
+    total = 'total'
+    per_person = 'per person'
 
 class Trip(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the trip')
     title: Optional[str] = Field(None, description='Title of the trip')
-    practicalInfo: Optional[str] = Field(
-        None, description='Practical information about the trip'
-    )
-    tripType: Optional[TripType] = Field(
-        None, description='Type of trip (daily or recurring)'
-    )
-    rateType: Optional[RateType] = Field(
-        None, description='Type of rate (total or per person)'
-    )
-    startDates: Optional[List[datetime]] = Field(
-        None, description='List of start dates for the trip'
-    )
-    endDates: Optional[List[datetime]] = Field(
-        None, description='List of end dates for the trip'
-    )
-    departureTimes: Optional[List[time]] = Field(
-        None, description='List of departure times'
-    )
-    endTimes: Optional[List[time]] = Field(None, description='List of end times')
+    practicalInfo: Optional[str] = Field(None, description='Practical information about the trip')
+    tripType: Optional[TripType] = Field(None, description='Type of trip (daily or recurring)')
+    rateType: Optional[RateType] = Field(None, description='Type of rate (total or per person)')
+    startDates: Optional[List[str]] = Field(None, description='List of start dates for the trip')
+    endDates: Optional[List[str]] = Field(None, description='List of end dates for the trip')
+    departureTimes: Optional[List[str]] = Field(None, description='List of departure times')
+    endTimes: Optional[List[str]] = Field(None, description='List of end times')
     passengerCount: Optional[int] = Field(None, description='Number of passengers')
     price: Optional[float] = Field(None, description='Price of the trip')
-    user: Optional[UserRead] = None
-    boat: Optional[Boat] = None
+    user_id: Optional[str] = Field(None, description='ID of the user associated with this trip')
 
+    class Config:
+        from_attributes = True
 
 class Reservation(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the reservation')
