@@ -1,8 +1,7 @@
-from sqlalchemy import Column, Integer, String, Date, Enum as SQLAlchemyEnum
-from .models import Status
+from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey, Enum as SQLAlchemyEnum
+from .models import Status, LicenseType, BoatType, EngineType
 from sqlalchemy.orm import relationship
 from app.db import Base
-
 
 class User(Base):
     __tablename__ = "users"
@@ -18,3 +17,31 @@ class User(Base):
     activityType = Column(String, nullable=True)
     siretNumber = Column(String, nullable=True)
     rcNumber = Column(String, nullable=True)
+
+    boats = relationship("Boat", back_populates="owner")
+
+
+class Boat(Base):
+    __tablename__ = "boats"
+
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(String, nullable=True)
+    brand = Column(String, nullable=True)
+    manufactureYear = Column(String, nullable=True)
+    photoUrl = Column(String, nullable=True)
+    licenseType = Column(SQLAlchemyEnum(LicenseType, name="license_type_enum"), nullable=True)
+    boatType = Column(SQLAlchemyEnum(BoatType, name="boat_type_enum"), nullable=True)
+    equipment = Column(String, nullable=True)  # Stocker en tant que liste sérialisée (JSON, par exemple)
+    depositAmount = Column(Float, nullable=True)
+    maxCapacity = Column(Integer, nullable=True)
+    numberOfBeds = Column(Integer, nullable=True)
+    homePort = Column(String, nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    engineType = Column(SQLAlchemyEnum(EngineType, name="engine_type_enum"), nullable=True)
+    enginePower = Column(Integer, nullable=True)
+
+    # Relation avec User (si un bateau est associé à un utilisateur)
+    owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # ForeignKey vers l'utilisateur propriétaire
+    owner = relationship("User", back_populates="boats")
