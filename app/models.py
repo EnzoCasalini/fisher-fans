@@ -60,15 +60,15 @@ class Boat(BaseModel):
     name: Optional[str] = Field(None, description='Name of the boat')
     description: Optional[str] = Field(None, description='Description of the boat')
     brand: Optional[str] = Field(None, description='Brand of the boat')
-    manufactureYear: Optional[date] = Field(
+    manufactureYear: Optional[str] = Field(
         None, description='Year the boat was manufactured'
     )
-    photoUrl: Optional[AnyUrl] = Field(None, description="URL of the boat's photo")
+    photoUrl: Optional[str] = Field(None, description="URL of the boat's photo")
     licenseType: Optional[LicenseType] = Field(
         None, description='Required license type (coastal or river)'
     )
     boatType: Optional[BoatType] = Field(None, description='Type of boat')
-    equipment: Optional[List[EquipmentEnum]] = Field(
+    equipment: Optional[str] = Field(
         None,
         description='List of equipment on board (e.g., sonar, livewell, ladder, GPS, rod holders, VHF radio)',
     )
@@ -84,6 +84,10 @@ class Boat(BaseModel):
         None, description='Type of engine (diesel, gasoline, or none)'
     )
     enginePower: Optional[int] = Field(None, description='Engine power (in horsepower)')
+    owner_id: Optional[str] = Field(None, description='ID of the owner (user)')
+
+    class Config:
+        from_attributes = True  # Permet l'utilisation de from_orm
 
 class UserRead(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the user')
@@ -100,7 +104,7 @@ class UserRead(BaseModel):
     companyName: Optional[str] = Field(
         None, description='Company name (empty if individual)'
     )
-    activityType: Optional[ActivityType] = Field(
+    activityType: Optional[str] = Field(
         None, description='Type of activity (rental or fishing guide)'
     )
     siretNumber: Optional[str] = Field(None, description='SIRET number')
@@ -111,7 +115,6 @@ class UserRead(BaseModel):
     log: Optional[Log] = None
 
     class Config:
-        orm_mode = True
         from_attributes = True
 
 class TripType(str, Enum):
