@@ -61,7 +61,7 @@ class Boat(Base):
     longitude = Column(Float, nullable=True)
     engineType = Column(SQLAlchemyEnum(EngineType, name="engine_type_enum"), nullable=True)
     enginePower = Column(Integer, nullable=True)
-
+ 
     # Relation avec User (si un bateau est associé à un utilisateur)
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # ForeignKey vers l'utilisateur propriétaire
     owner = relationship("User", back_populates="boats")
