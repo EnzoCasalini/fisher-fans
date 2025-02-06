@@ -4,8 +4,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
-
+import uuid
+from typing import List, Optional, Union
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from sqlalchemy.orm import Session
+from app.models import Boat as PydanticBoat
+from app.models_sqlalchemy import Boat as SQLAlchemyBoat
 from ..dependencies import *
 
 router = APIRouter(tags=['Boats'])
@@ -13,7 +17,7 @@ router = APIRouter(tags=['Boats'])
 
 @router.get(
     '/v1/boats',
-    response_model=List[Boat],
+    response_model=List[PydanticBoat],
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -23,21 +27,46 @@ router = APIRouter(tags=['Boats'])
     },
     tags=['Boats'],
 )
-def get_v1_boats(
+def get_boats(
     user_id: Optional[str] = Query(None, alias='userId'),
-    y1: Optional[float] = None,
-    y2: Optional[float] = None,
-    x1: Optional[float] = None,
-    x2: Optional[float] = None,
     name: Optional[str] = None,
     brand: Optional[str] = None,
     boat_type: Optional[str] = Query(None, alias='boatType'),
     home_port: Optional[str] = Query(None, alias='homePort'),
-) -> Union[List[Boat], Error]:
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+) -> List[PydanticBoat]:
     """
-    Get the list of boats
+    Get the list of boats with optional filters and pagination.
     """
-    pass
+    query = db.query(SQLAlchemyBoat)
+
+    if user_id:
+        query = query.filter(SQLAlchemyBoat.owner_id == user_id)
+    if name:
+        query = query.filter(SQLAlchemyBoat.name.ilike(f"%{name}%"))
+    if brand:
+        query = query.filter(SQLAlchemyBoat.brand.ilike(f"%{brand}%"))
+    if boat_type:
+        query = query.filter(SQLAlchemyBoat.boatType.ilike(f"%{boat_type}%"))
+    if home_port:
+        query = query.filter(SQLAlchemyBoat.homePort.ilike(f"%{home_port}%"))
+
+    boats = query.offset(skip).limit(limit).all()
+
+    # Convert fields that need to be strings
+    for boat in boats:
+        if isinstance(boat.manufactureYear, str):
+            boat.manufactureYear = str(boat.manufactureYear)
+        if isinstance(boat.depositAmount, float):
+            boat.depositAmount = str(boat.depositAmount)
+        if isinstance(boat.latitude, float):
+            boat.latitude = str(boat.latitude)
+        if isinstance(boat.longitude, float):
+            boat.longitude = str(boat.longitude)
+
+    return [PydanticBoat.from_orm(boat) for boat in boats]
 
 
 @router.post(
@@ -52,16 +81,42 @@ def get_v1_boats(
     },
     tags=['Boats'],
 )
-def post_v1_boats(body: Boat) -> Optional[Error]:
+def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> Optional[Error]:
     """
-    Create a new boat
+    Create a new boat.
     """
-    pass
+    if not boat.id:
+        boat.id = str(uuid.uuid4())
+
+    db_boat = SQLAlchemyBoat(
+        id=boat.id,
+        name=boat.name,
+        description=boat.description,
+        brand=boat.brand,
+        manufactureYear=str(boat.manufactureYear),
+        photoUrl=str(boat.photoUrl),
+        licenseType=boat.licenseType,
+        boatType=boat.boatType,
+        equipment=boat.equipment,
+        depositAmount=boat.depositAmount,
+        maxCapacity=boat.maxCapacity,
+        numberOfBeds=boat.numberOfBeds,
+        homePort=boat.homePort,
+        latitude=boat.latitude,
+        longitude=boat.longitude,
+        engineType=boat.engineType,
+        enginePower=boat.enginePower,
+        owner_id=boat.owner_id,
+    )
+    db.add(db_boat)
+    db.commit()
+    db.refresh(db_boat)
+    return None
 
 
 @router.get(
     '/v1/boats/{boat_id}',
-    response_model=Boat,
+    response_model=PydanticBoat,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -71,13 +126,14 @@ def post_v1_boats(body: Boat) -> Optional[Error]:
     },
     tags=['Boats'],
 )
-def get_v1_boats_boat_id(
-    boat_id: str = Path(..., alias='boatId')
-) -> Union[Boat, Error]:
+def get_boat_by_id(boat_id: str, db: Session = Depends(get_db)) -> PydanticBoat:
     """
-    Get a boat by ID
+    Get a boat by ID.
     """
-    pass
+    boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat_id).first()
+    if not boat:
+        raise HTTPException(status_code=404, detail="Boat not found")
+    return PydanticBoat.from_orm(boat)
 
 
 @router.put(
@@ -92,13 +148,22 @@ def get_v1_boats_boat_id(
     },
     tags=['Boats'],
 )
-def put_v1_boats_boat_id(
-    boat_id: str = Path(..., alias='boatId'), body: Boat = ...
+def update_boat(
+    boat_id: str, boat: PydanticBoat, db: Session = Depends(get_db)
 ) -> Optional[Error]:
     """
-    Edit a boat
+    Edit a boat.
     """
-    pass
+    db_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat_id).first()
+    if not db_boat:
+        raise HTTPException(status_code=404, detail="Boat not found")
+
+    for key, value in boat.dict(exclude_unset=True).items():
+        setattr(db_boat, key, value)
+
+    db.commit()
+    db.refresh(db_boat)
+    return None
 
 
 @router.delete(
@@ -113,10 +178,14 @@ def put_v1_boats_boat_id(
     },
     tags=['Boats'],
 )
-def delete_v1_boats_boat_id(
-    boat_id: str = Path(..., alias='boatId')
-) -> Optional[Error]:
+def delete_boat(boat_id: str, db: Session = Depends(get_db)) -> Optional[Error]:
     """
-    Delete a boat
+    Delete a boat.
     """
-    pass
+    db_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat_id).first()
+    if not db_boat:
+        raise HTTPException(status_code=404, detail="Boat not found")
+
+    db.delete(db_boat)
+    db.commit()
+    return None
