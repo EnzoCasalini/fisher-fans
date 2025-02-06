@@ -18,6 +18,7 @@ class User(Base):
     siretNumber = Column(String, nullable=True)
     rcNumber = Column(String, nullable=True)
     trips = relationship("Trip", back_populates="user")
+    boats = relationship("Boat", back_populates="owner")
 
 class Trip(Base):
     __tablename__ = "trips"
@@ -34,11 +35,12 @@ class Trip(Base):
     passengerCount = Column(Integer)
     price = Column(Float)
     user_id = Column(String, ForeignKey("users.id"))
+    boat_id = Column(String, ForeignKey("boats.id"))
 
     user = relationship("User", back_populates="trips")
     
 
-    boats = relationship("Boat", back_populates="owner")
+    boats = relationship("Boat", back_populates="trips")
 
 
 class Boat(Base):
@@ -61,6 +63,8 @@ class Boat(Base):
     longitude = Column(Float, nullable=True)
     engineType = Column(SQLAlchemyEnum(EngineType, name="engine_type_enum"), nullable=True)
     enginePower = Column(Integer, nullable=True)
+
+    trips = relationship("Trip", back_populates="boats")
  
     # Relation avec User (si un bateau est associé à un utilisateur)
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # ForeignKey vers l'utilisateur propriétaire
