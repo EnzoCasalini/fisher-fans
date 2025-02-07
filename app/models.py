@@ -142,12 +142,14 @@ class Trip(BaseModel):
     class Config:
         from_attributes = True
 
+
 class Reservation(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the reservation')
     trip: Optional[Trip] = None
     date: Optional[datetime] = None
     reservedSeats: Optional[int] = None
     totalPrice: Optional[float] = None
+    userId: Optional[str] = Field(None, description='User who made the reservation')
 
 
 class Log(BaseModel):

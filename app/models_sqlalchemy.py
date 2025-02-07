@@ -19,6 +19,7 @@ class User(Base):
     rcNumber = Column(String, nullable=True)
     trips = relationship("Trip", back_populates="user")
     boats = relationship("Boat", back_populates="owner")
+    reservations = relationship("Reservation", back_populates="user")
 
 class Trip(Base):
     __tablename__ = "trips"
@@ -69,3 +70,17 @@ class Boat(Base):
     # Relation avec User (si un bateau est associé à un utilisateur)
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # ForeignKey vers l'utilisateur propriétaire
     owner = relationship("User", back_populates="boats")
+
+
+
+class Reservation(Base):
+    __tablename__ = "reservations"
+
+    id = Column(String, primary_key=True, index=True)
+    tripId = Column(String, ForeignKey("trips.id"), nullable=False)  # Correspond à trip
+    date = Column(Date, nullable=False)
+    reservedSeats = Column(Integer, nullable=False)
+    totalPrice = Column(Float, nullable=False)
+    userId = Column(String, ForeignKey("users.id"), nullable=False)
+
+    user = relationship("User", back_populates="reservations")
