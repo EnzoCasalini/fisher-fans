@@ -28,11 +28,11 @@ router = APIRouter(tags=['Boats'])
     tags=['Boats'],
 )
 def get_boats(
-    user_id: Optional[str] = Query(None, alias='userId'),
+    userId: Optional[str] = Query(None, alias='userId'),
     name: Optional[str] = None,
     brand: Optional[str] = None,
-    boat_type: Optional[str] = Query(None, alias='boatType'),
-    home_port: Optional[str] = Query(None, alias='homePort'),
+    boatType: Optional[str] = Query(None, alias='boatType'),
+    homePort: Optional[str] = Query(None, alias='homePort'),
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
@@ -42,16 +42,16 @@ def get_boats(
     """
     query = db.query(SQLAlchemyBoat)
 
-    if user_id:
-        query = query.filter(SQLAlchemyBoat.owner_id == user_id)
+    if userId:
+        query = query.filter(SQLAlchemyBoat.owner_id == userId)
     if name:
         query = query.filter(SQLAlchemyBoat.name.ilike(f"%{name}%"))
     if brand:
         query = query.filter(SQLAlchemyBoat.brand.ilike(f"%{brand}%"))
-    if boat_type:
-        query = query.filter(SQLAlchemyBoat.boatType.ilike(f"%{boat_type}%"))
-    if home_port:
-        query = query.filter(SQLAlchemyBoat.homePort.ilike(f"%{home_port}%"))
+    if boatType:
+        query = query.filter(SQLAlchemyBoat.boatType.ilike(f"%{boatType}%"))
+    if homePort:
+        query = query.filter(SQLAlchemyBoat.homePort.ilike(f"%{homePort}%"))
 
     boats = query.offset(skip).limit(limit).all()
 
