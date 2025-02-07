@@ -29,19 +29,30 @@ router = APIRouter(tags=['Users'])
     tags=['Users'],
 )
 def get_users(
-    company: Optional[str] = None,  # Paramètre de filtre optionnel
-    skip: int = 0,
-    limit: int = 10,
+    lastName: Optional[str] = Query(None, description="Filter by last name"),
+    firstName: Optional[str] = Query(None, description="Filter by first name"),
+    email: Optional[str] = Query(None, description="Filter by email"),
+    status: Optional[str] = Query(None, description="Filter by status", enum=[
+                                  "individual", "professional"]),
+    company: Optional[str] = Query(None, description="Filter by company name"),
+    skip: int = Query(0, description="Number of records to skip"),
+    limit: int = Query(10, description="Maximum number of records to return"),
     db: Session = Depends(get_db),
-) -> list[PydanticUser]:
+) -> List[PydanticUser]:
     """
-    Récupère une liste d'utilisateurs avec pagination et filtre par 'companyName'.
+    Récupère une liste d'utilisateurs avec pagination et filtres multiples.
     """
     query = db.query(SQLAlchemyUser)
 
-    # Appliquer le filtre si 'company' est fourni
-    if company:
-        query = query.filter(SQLAlchemyUser.companyName.ilike(f"%{company}%"))
+    # Appliquer les filtres
+    if lastName:
+        query = query.filter(SQLAlchemyUser.lastName.ilike(f"%{lastName}%"))
+    if firstName:
+        query = query.filter(SQLAlchemyUser.firstName.ilike(f"%{firstName}%"))
+    if email:
+        query = query.filter(SQLAlchemyUser.email.ilike(f"%{email}%"))
+    if status:
+        query = query.filter(SQLAlchemyUser.status == status)
 
     # Appliquer la pagination
     users = query.offset(skip).limit(limit).all()
@@ -98,7 +109,8 @@ def create_user(user: PydanticUser, db: Session = Depends(get_db)) -> Optional[E
     tags=['Users'],
 )
 def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
-    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
+    user = db.query(SQLAlchemyUser).filter(
+        SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -125,7 +137,8 @@ def update_user(user_id: str, updated_user: PydanticUser, db: Session = Depends(
     Met à jour les informations d'un utilisateur spécifique par son ID.
     """
     # Rechercher l'utilisateur à mettre à jour
-    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
+    user = db.query(SQLAlchemyUser).filter(
+        SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
@@ -165,7 +178,8 @@ def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
     Supprime un utilisateur spécifique par son ID.
     """
     # Rechercher l'utilisateur à supprimer
-    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
+    user = db.query(SQLAlchemyUser).filter(
+        SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
