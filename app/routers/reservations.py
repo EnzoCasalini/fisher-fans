@@ -4,16 +4,24 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+import datetime
+from typing import List, Type
 
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
+
+import uuid
+from app.models import Reservation as PydanticReservation
+from app.models_sqlalchemy import Reservation as SQLAlchemyReservation
+from datetime import date
 from ..dependencies import *
+
 
 router = APIRouter(tags=['Reservations'])
 
 
 @router.get(
     '/v1/reservations',
-    response_model=List[Reservation],
+    response_model=List[PydanticReservation],
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -23,20 +31,16 @@ router = APIRouter(tags=['Reservations'])
     },
     tags=['Reservations'],
 )
-def get_v1_reservations(
-    user_id: Optional[str] = Query(None, alias='userId'),
-    trip_id: Optional[str] = Query(None, alias='tripId'),
-    date: Optional[date] = None,
-) -> Union[List[Reservation], Error]:
+def get_reservations(db: Session = Depends(get_db)) -> list[Type[PydanticReservation]]:
     """
     Get the list of reservations
     """
-    pass
+    return db.query(SQLAlchemyReservation).all()
 
 
 @router.post(
     '/v1/reservations',
-    response_model=None,
+    response_model=PydanticReservation,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -46,16 +50,30 @@ def get_v1_reservations(
     },
     tags=['Reservations'],
 )
-def post_v1_reservations(body: Reservation) -> Optional[Error]:
+def create_reservation(reservation: PydanticReservation, db: Session = Depends(get_db)):
     """
     Create a new reservation
     """
-    pass
+    if not reservation.id:
+        reservation.id = str(uuid.uuid4())
+
+    new_reservation = SQLAlchemyReservation(
+        id=reservation.id,
+        tripId=reservation.trip.id if reservation.trip else None,
+        date=reservation.date or datetime.UTC,
+        reservedSeats=reservation.reservedSeats,
+        totalPrice=reservation.totalPrice,
+        userId=reservation.userId,
+    )
+    db.add(new_reservation)
+    db.commit()
+    db.refresh(new_reservation)
+    return new_reservation
 
 
 @router.get(
     '/v1/reservations/{reservation_id}',
-    response_model=Reservation,
+    response_model=PydanticReservation,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -65,18 +83,19 @@ def post_v1_reservations(body: Reservation) -> Optional[Error]:
     },
     tags=['Reservations'],
 )
-def get_v1_reservations_reservation_id(
-    reservation_id: str = Path(..., alias='reservationId')
-) -> Union[Reservation, Error]:
+def get_reservation(reservation_id: str, db: Session = Depends(get_db)):
     """
     Get a reservation by ID
     """
-    pass
+    reservation = db.query(SQLAlchemyReservation).filter(SQLAlchemyReservation.id == reservation_id).first()
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+    return reservation
 
 
 @router.put(
     '/v1/reservations/{reservation_id}',
-    response_model=None,
+    response_model=PydanticReservation,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -86,13 +105,23 @@ def get_v1_reservations_reservation_id(
     },
     tags=['Reservations'],
 )
-def put_v1_reservations_reservation_id(
-    reservation_id: str = Path(..., alias='reservationId'), body: Reservation = ...
-) -> Optional[Error]:
+def update_reservation(reservation_id: str, updated_reservation: PydanticReservation, db: Session = Depends(get_db)):
     """
     Edit a reservation
     """
-    pass
+    reservation = db.query(SQLAlchemyReservation).filter(SQLAlchemyReservation.id == reservation_id).first()
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+
+    reservation.tripId = updated_reservation.trip.id if updated_reservation.trip else None
+    reservation.date = updated_reservation.date or reservation.date
+    reservation.reservedSeats = updated_reservation.reservedSeats
+    reservation.totalPrice = updated_reservation.totalPrice
+    reservation.userId = updated_reservation.userId
+
+    db.commit()
+    db.refresh(reservation)
+    return reservation
 
 
 @router.delete(
@@ -107,10 +136,14 @@ def put_v1_reservations_reservation_id(
     },
     tags=['Reservations'],
 )
-def delete_v1_reservations_reservation_id(
-    reservation_id: str = Path(..., alias='reservationId')
-) -> Optional[Error]:
+def delete_reservation(reservation_id: str, db: Session = Depends(get_db)):
     """
     Delete a reservation
     """
-    pass
+    reservation = db.query(SQLAlchemyReservation).filter(SQLAlchemyReservation.id == reservation_id).first()
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Reservation not found")
+
+    db.delete(reservation)
+    db.commit()
+    return {"message": "Reservation deleted successfully"}
