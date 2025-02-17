@@ -150,27 +150,33 @@ class Reservation(BaseModel):
     totalPrice: Optional[float] = None
 
 
+
 class Log(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the log')
-    pages: Optional[List[Page]] = None
+    id: Optional[str] = Field(None, description='Unique identifier of the fishing log')
+    user_id: Optional[str] = Field(None, description='ID of the user owning the log')
+    pages: list["Page"] = []  # ✅ Correction pour éviter la récursion
+
+    class Config:
+        from_attributes = True
 
 
 class Page(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the page entry')
-    fishName: Optional[str] = Field(None, description='Name of the fish')
-    fishPhotoUrl: Optional[AnyUrl] = Field(None, description='URL of the fish photo')
+    id: Optional[str] = Field(None, description='Unique identifier of the fishing log page')
+    log_id: Optional[str] = Field(None, description='ID of the fishing log')
+    fish_name: Optional[str] = Field(None, description='Name of the fish')
+    photo_url: Optional[str] = Field(None, description='URL of the fish photo')
     comment: Optional[str] = Field(None, description='Comment about the catch')
-    length: Optional[float] = Field(
-        None, description='Length of the fish in centimeters'
-    )
-    weight: Optional[float] = Field(None, description='Weight of the fish in kilograms')
-    fishingSpot: Optional[str] = Field(None, description='Fishing location')
-    fishingDate: Optional[date] = Field(None, description='Date of fishing')
-    release: Optional[bool] = Field(
-        None, description='Was the fish released? (true = yes, false = no)'
-    )
-    owner: Optional[UserRead] = None
+    size_cm: Optional[float] = Field(None, description='Size of the fish in cm')
+    weight_kg: Optional[float] = Field(None, description='Weight of the fish in kg')
+    location: Optional[str] = Field(None, description='Fishing location')
+    dateOfCatch: Optional[date] = Field(None, description='Date of the catch')
+    released: Optional[bool] = Field(None, description='Was the fish released?')
+
+    class Config:
+        from_attributes = True
 
 
-UserRead.update_forward_refs()
-Log.update_forward_refs()
+# ✅ Évite les erreurs de récursion
+UserRead.model_rebuild()
+Log.model_rebuild()
+Page.model_rebuild()
