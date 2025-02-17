@@ -2,6 +2,7 @@ from sqlalchemy import Column, Integer, String, Date, Float, ForeignKey, Enum as
 from .models import Status, LicenseType, BoatType, EngineType
 from sqlalchemy.orm import relationship
 from app.db import Base
+from sqlalchemy import Boolean
 
 class User(Base):
     __tablename__ = "users"
@@ -19,6 +20,7 @@ class User(Base):
     rcNumber = Column(String, nullable=True)
     trips = relationship("Trip", back_populates="user")
     boats = relationship("Boat", back_populates="owner")
+    log = relationship("Log", back_populates="user", cascade="all, delete-orphan")
     reservations = relationship("Reservation", back_populates="user")
 
 class Trip(Base):
@@ -39,10 +41,7 @@ class Trip(Base):
     boat_id = Column(String, ForeignKey("boats.id"))
 
     user = relationship("User", back_populates="trips")
-    
-
     boats = relationship("Boat", back_populates="trips")
-
 
 class Boat(Base):
     __tablename__ = "boats"
@@ -55,7 +54,7 @@ class Boat(Base):
     photoUrl = Column(String, nullable=True)
     licenseType = Column(SQLAlchemyEnum(LicenseType, name="license_type_enum"), nullable=True)
     boatType = Column(SQLAlchemyEnum(BoatType, name="boat_type_enum"), nullable=True)
-    equipment = Column(String, nullable=True)  # Stocker en tant que liste sérialisée (JSON, par exemple)
+    equipment = Column(String, nullable=True)
     depositAmount = Column(Float, nullable=True)
     maxCapacity = Column(Integer, nullable=True)
     numberOfBeds = Column(Integer, nullable=True)
@@ -66,12 +65,32 @@ class Boat(Base):
     enginePower = Column(Integer, nullable=True)
 
     trips = relationship("Trip", back_populates="boats")
- 
-    # Relation avec User (si un bateau est associé à un utilisateur)
-    owner_id = Column(String, ForeignKey("users.id"), nullable=False)  # ForeignKey vers l'utilisateur propriétaire
+    owner_id = Column(String, ForeignKey("users.id"), nullable=False)
     owner = relationship("User", back_populates="boats")
 
+class Log(Base):
+    __tablename__ = "log"
 
+    id = Column(String, primary_key=True, index=True)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True)
+    user = relationship("User", back_populates="log")
+    pages = relationship("Page", back_populates="log", cascade="all, delete-orphan")
+
+class Page(Base):
+    __tablename__ = "pages"
+
+    id = Column(String, primary_key=True, index=True)
+    log_id = Column(String, ForeignKey("log.id"), nullable=False)
+    fish_name = Column(String, nullable=False)
+    photo_url = Column(String, nullable=True)
+    comment = Column(String, nullable=True)
+    size_cm = Column(Float, nullable=True)
+    weight_kg = Column(Float, nullable=True)
+    location = Column(String, nullable=True)
+    dateOfCatch = Column(Date, nullable=True)
+    released = Column(Boolean, nullable=False)
+
+    log = relationship("Log", back_populates="pages")
 
 class Reservation(Base):
     __tablename__ = "reservations"
