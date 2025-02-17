@@ -21,6 +21,7 @@ class User(Base):
     trips = relationship("Trip", back_populates="user")
     boats = relationship("Boat", back_populates="owner")
     log = relationship("Log", back_populates="user", cascade="all, delete-orphan")
+    reservations = relationship("Reservation", back_populates="user")
 
 class Trip(Base):
     __tablename__ = "trips"
@@ -90,3 +91,15 @@ class Page(Base):
     released = Column(Boolean, nullable=False)
 
     log = relationship("Log", back_populates="pages")
+
+class Reservation(Base):
+    __tablename__ = "reservations"
+
+    id = Column(String, primary_key=True, index=True)
+    tripId = Column(String, ForeignKey("trips.id"), nullable=False)  # Correspond à trip
+    date = Column(Date, nullable=False)
+    reservedSeats = Column(Integer, nullable=False)
+    totalPrice = Column(Float, nullable=False)
+    userId = Column(String, ForeignKey("users.id"), nullable=False)
+
+    user = relationship("User", back_populates="reservations")
