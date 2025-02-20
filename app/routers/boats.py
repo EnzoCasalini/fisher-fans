@@ -113,6 +113,27 @@ def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> Optional[E
     db.refresh(db_boat)
     return None
 
+@router.get('/v1/boats/bbox', response_model=List[PydanticBoat])
+def get_boats_by_bbox(
+    lat_min: float = Query(..., description="Minimum latitude"),
+    lat_max: float = Query(..., description="Maximum latitude"),
+    lon_min: float = Query(..., description="Minimum longitude"),
+    lon_max: float = Query(..., description="Maximum longitude"),
+    db: Session = Depends(get_db),
+) -> List[PydanticBoat]:
+    if lat_min > lat_max or lon_min > lon_max:
+        raise HTTPException(status_code=400, detail="Invalid bounding box: lat_min must be ≤ lat_max and lon_min ≤ lon_max")
+
+    query = db.query(SQLAlchemyBoat).filter(
+        SQLAlchemyBoat.latitude >= lat_min, SQLAlchemyBoat.latitude <= lat_max,
+        SQLAlchemyBoat.longitude >= lon_min, SQLAlchemyBoat.longitude <= lon_max
+    )
+    boats = query.all()
+
+    if not boats:
+        raise HTTPException(status_code=404, detail="No boats found in the specified area.")
+
+    return [PydanticBoat.from_orm(boat) for boat in boats]  # ✅ Retourne 404 si aucun bateau trouvé
 
 @router.get(
     '/v1/boats/{boat_id}',
