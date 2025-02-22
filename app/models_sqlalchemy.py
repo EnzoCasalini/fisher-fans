@@ -21,6 +21,7 @@ class User(Base):
     activityType = Column(String, nullable=True)
     siretNumber = Column(String, nullable=True)
     rcNumber = Column(String, nullable=True)
+    isAnonymised = Column(Boolean, default=False)
     trips = relationship("Trip", back_populates="user")
     boats = relationship("Boat", back_populates="owner")
     log = relationship("Log", back_populates="user", cascade="all, delete-orphan")

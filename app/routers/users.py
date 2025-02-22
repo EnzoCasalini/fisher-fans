@@ -163,6 +163,15 @@ def delete_user(
     user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    db.delete(user)
+
+    # Anonymisation des données personnelles
+    user.login = f"anonymised_{user.id}"
+    user.firstName = None
+    user.lastName = None
+    user.email = None
+    user.boatLicense = None
+    # Maybe remove other fields as well
+    user.isAnonymised = True
+
     db.commit()
     return None
