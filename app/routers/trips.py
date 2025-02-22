@@ -11,8 +11,13 @@ import json
 from datetime import date
 
 from ..dependencies import get_db, Error
+from app.routers.auth import get_current_user
 
-router = APIRouter(tags=['Trips'])
+
+router = APIRouter(
+    tags=['Trips'],
+    dependencies=[Depends(get_current_user)]
+)
 
 @router.get(
     '/v1/trips',

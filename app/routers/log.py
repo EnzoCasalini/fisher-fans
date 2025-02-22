@@ -7,8 +7,13 @@ from sqlalchemy.orm import Session
 from app.models import Log as PydanticLog, Page as PydanticPage
 from app.models_sqlalchemy import Log as SQLAlchemyLog, Page as SQLAlchemyPage, User
 from ..dependencies import *
+from app.routers.auth import get_current_user
 
-router = APIRouter(tags=['Log'])
+
+router = APIRouter(
+    tags=['Log'],
+    dependencies=[Depends(get_current_user)]
+)
 
 @router.get("/v1/log/{user_id}", response_model=PydanticLog)
 def get_user_log(user_id: str = Path(...), db: Session = Depends(get_db)) -> PydanticLog:

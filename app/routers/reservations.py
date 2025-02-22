@@ -14,10 +14,13 @@ from app.models import Reservation as PydanticReservation
 from app.models_sqlalchemy import Reservation as SQLAlchemyReservation
 from datetime import date
 from ..dependencies import *
+from app.routers.auth import get_current_user
 
 
-router = APIRouter(tags=['Reservations'])
-
+router = APIRouter(
+    tags=['Reservations'],
+    dependencies=[Depends(get_current_user)]
+)
 
 @router.get(
     '/v1/reservations',
