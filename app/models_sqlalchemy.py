@@ -4,10 +4,13 @@ from sqlalchemy.orm import relationship
 from app.db import Base
 from sqlalchemy import Boolean
 
+
 class User(Base):
     __tablename__ = "users"
 
     id = Column(String, primary_key=True, index=True)
+    login = Column(String, unique=True, index=True, nullable=False)
+    hashedPassword = Column(String, nullable=False)
     lastName = Column(String, index=True)
     firstName = Column(String, index=True)
     birthDate = Column(Date, nullable=True)

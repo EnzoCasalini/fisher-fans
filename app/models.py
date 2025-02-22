@@ -89,26 +89,27 @@ class Boat(BaseModel):
     class Config:
         from_attributes = True  # Permet l'utilisation de from_orm
 
-class UserRead(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the user')
+
+class UserBase(BaseModel):
+    id: Optional[str] = Field(None, description="Unique identifier of the user")
+    login: str = Field(..., description="Login of the user")
+    email: EmailStr = Field(..., description="User email")
     lastName: Optional[str] = None
     firstName: Optional[str] = None
     birthDate: Optional[date] = None
-    email: Optional[EmailStr] = None
-    boatLicense: Optional[str] = Field(
-        None, description='Boat license number (8 digits)'
-    )
-    status: Optional[Status] = Field(
-        None, description='Status of the user (individual or professional)'
-    )
-    companyName: Optional[str] = Field(
-        None, description='Company name (empty if individual)'
-    )
-    activityType: Optional[str] = Field(
-        None, description='Type of activity (rental or fishing guide)'
-    )
-    siretNumber: Optional[str] = Field(None, description='SIRET number')
-    rcNumber: Optional[str] = Field(None, description='Commercial register number (RC)')
+    boatLicense: Optional[str] = Field(None, description="Boat license number (8 digits)")
+    status: Optional[Status] = Field(None, description="Status of the user")
+    companyName: Optional[str] = Field(None, description="Company name (if applicable)")
+    activityType: Optional[str] = Field(None, description="Type of activity (rental or fishing guide)")
+    siretNumber: Optional[str] = Field(None, description="SIRET number")
+    rcNumber: Optional[str] = Field(None, description="Commercial register number (RC)")
+
+
+class UserCreate(UserBase):
+    password: str = Field(..., description="Password in plain text (will be hashed)")
+
+
+class UserRead(UserBase):
     boats: Optional[List[Boat]] = None
     trips: Optional[List[Trip]] = None
     reservations: Optional[List[Reservation]] = None
@@ -116,6 +117,7 @@ class UserRead(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class TripType(str, Enum):
     daily = 'daily'

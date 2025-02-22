@@ -10,7 +10,7 @@ import yaml
 
 from app.db import Base, engine
 
-from .routers import boats, log, reservations, trips, users
+from .routers import boats, log, reservations, trips, users, auth
 
 
 # Initialisation de l'application FastAPI
@@ -35,6 +35,7 @@ app.include_router(log.router)
 app.include_router(reservations.router)
 app.include_router(trips.router)
 app.include_router(users.router)
+app.include_router(auth.router)
 
 
 # Endpoint racine pour vérifier que l'application fonctionne
@@ -54,9 +55,12 @@ def custom_openapi():
         print(f"FF_API.yaml not found at {openapi_path}")
         return app.openapi_schema  # Par défaut, utilise le schéma généré automatiquement
 
+
 # Associer le schéma OpenAPI personnalisé à l'application
 app.openapi = custom_openapi
 # Initialisation de la base de données
+
+
 @app.on_event("startup")
 async def startup_event():
     """
