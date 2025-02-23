@@ -33,16 +33,52 @@ router = APIRouter(tags=['Reservations'])
     },
     tags=['Reservations'],
 )
-def get_reservations(db: Session = Depends(get_db)):
+def get_reservations(
+    db: Session = Depends(get_db),
+    tripId: Optional[str] = Query(None, description="Filter by trip ID"),
+    userId: Optional[str] = Query(None, description="Filter by user ID"),
+    startDate: Optional[date] = Query(
+        None, description="Filter reservations from this date"),
+    endDate: Optional[date] = Query(
+        None, description="Filter reservations up to this date"),
+    minPrice: Optional[float] = Query(
+        None, description="Filter reservations with minimum total price"),
+    maxPrice: Optional[float] = Query(
+        None, description="Filter reservations with maximum total price"),
+    minSeats: Optional[int] = Query(
+        None, description="Filter reservations with minimum number of reserved seats"),
+    upcoming: Optional[bool] = Query(
+        None, description="Filter only upcoming reservations")
+) -> List[dict]:
     """
-    Get the list of reservations with only the tripId
+    Get the list of reservations with filters
     """
-    reservations = db.query(SQLAlchemyReservation).all()
+    query = db.query(SQLAlchemyReservation)
+
+    # Apply filters
+    if tripId:
+        query = query.filter(SQLAlchemyReservation.tripId == tripId)
+    if userId:
+        query = query.filter(SQLAlchemyReservation.userId == userId)
+    if startDate:
+        query = query.filter(SQLAlchemyReservation.date >= startDate)
+    if endDate:
+        query = query.filter(SQLAlchemyReservation.date <= endDate)
+    if minPrice:
+        query = query.filter(SQLAlchemyReservation.totalPrice >= minPrice)
+    if maxPrice:
+        query = query.filter(SQLAlchemyReservation.totalPrice <= maxPrice)
+    if minSeats:
+        query = query.filter(SQLAlchemyReservation.reservedSeats >= minSeats)
+    if upcoming:
+        query = query.filter(SQLAlchemyReservation.date >= date.today())
+
+    reservations = query.all()
 
     return [
         {
             "id": res.id,
-            "tripId": res.tripId,  # ✅ Ne retourne que l'ID du trip
+            "tripId": res.tripId,
             "date": res.date,
             "reservedSeats": res.reservedSeats,
             "totalPrice": res.totalPrice,
@@ -70,11 +106,13 @@ def create_reservation(reservation: PydanticReservation, db: Session = Depends(g
     if not reservation.id:
         reservation.id = str(uuid.uuid4())
 
-    trip = db.query(SQLAlchemyTrip).filter(SQLAlchemyTrip.id == reservation.trip.id).first() if reservation.trip else None
+    trip = db.query(SQLAlchemyTrip).filter(SQLAlchemyTrip.id ==
+                                           reservation.trip.id).first() if reservation.trip else None
     if reservation.trip and not trip:
         raise HTTPException(status_code=400, detail="Trip does not exist")
 
-    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == reservation.userId).first()
+    user = db.query(SQLAlchemyUser).filter(
+        SQLAlchemyUser.id == reservation.userId).first()
     if not user:
         raise HTTPException(status_code=400, detail="User does not exist")
     if trip.user_id == reservation.userId:
@@ -117,7 +155,8 @@ def get_reservation(reservation_id: str, db: Session = Depends(get_db)):
     """
     Get a reservation by ID with only the tripId
     """
-    reservation = db.query(SQLAlchemyReservation).filter(SQLAlchemyReservation.id == reservation_id).first()
+    reservation = db.query(SQLAlchemyReservation).filter(
+        SQLAlchemyReservation.id == reservation_id).first()
     if not reservation:
         raise HTTPException(status_code=404, detail="Reservation not found")
 
@@ -146,7 +185,8 @@ def update_reservation(reservation_id: str, updated_reservation: PydanticReserva
     """
     Edit a reservation
     """
-    reservation = db.query(SQLAlchemyReservation).filter(SQLAlchemyReservation.id == reservation_id).first()
+    reservation = db.query(SQLAlchemyReservation).filter(
+        SQLAlchemyReservation.id == reservation_id).first()
     if not reservation:
         raise HTTPException(status_code=404, detail="Reservation not found")
 
@@ -184,7 +224,8 @@ def delete_reservation(reservation_id: str, db: Session = Depends(get_db)):
     """
     Delete a reservation
     """
-    reservation = db.query(SQLAlchemyReservation).filter(SQLAlchemyReservation.id == reservation_id).first()
+    reservation = db.query(SQLAlchemyReservation).filter(
+        SQLAlchemyReservation.id == reservation_id).first()
     if not reservation:
         raise HTTPException(status_code=404, detail="Reservation not found")
     if reservation.date < datetime.utcnow().date():
