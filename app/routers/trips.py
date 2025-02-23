@@ -76,6 +76,9 @@ def create_trip(trip: PydanticTrip, db: Session = Depends(get_db)):
     if not trip.id:
         trip.id = str(uuid.uuid4())
 
+    if any(end < start for start, end in zip(trip.startDates, trip.endDates)):
+        raise HTTPException(status_code=400, detail="End date cannot be before start date.")
+
     db_trip = SQLAlchemyTrip(
         id=trip.id,
         title=trip.title,
@@ -196,6 +199,9 @@ def delete_v1_trips_trip_id(
     db_trip = db.query(SQLAlchemyTrip).filter(SQLAlchemyTrip.id == tripId).first()
     if not db_trip:
         raise HTTPException(status_code=404, detail="Trip not found")
+
+    if db_trip.reservations:
+        raise HTTPException(status_code=409, detail="Cannot delete a trip with active reservations.")
     
     db.delete(db_trip)
     db.commit()

@@ -142,6 +142,10 @@ def update_boat(
     if not db_boat:
         raise HTTPException(status_code=404, detail="Boat not found")
 
+    # need to have a user identifier
+    # if db_boat.owner_id != user_id:
+    #     raise HTTPException(status_code=403, detail="You cannot edit a boat you do not own.")
+
     for key, value in boat.dict(exclude_unset=True).items():
         setattr(db_boat, key, value)
 
@@ -169,6 +173,8 @@ def delete_boat(boat_id: str, db: Session = Depends(get_db)) -> Optional[Error]:
     db_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat_id).first()
     if not db_boat:
         raise HTTPException(status_code=404, detail="Boat not found")
+    if db_boat.trips:
+        raise HTTPException(status_code=409, detail="Cannot delete boat linked to active trips.")
 
     db.delete(db_boat)
     db.commit()

@@ -60,6 +60,8 @@ def add_log_page(
     log = db.query(SQLAlchemyLog).filter(SQLAlchemyLog.user_id == user_id).first()
     if not log:
         raise HTTPException(status_code=404, detail="Log not found")
+    if page.size_cm < 0 or page.weight_kg < 0:
+        raise HTTPException(status_code=400, detail="Size and weight cannot be negative.")
 
     db_page = SQLAlchemyPage(
         id=str(uuid.uuid4()),  # ✅ Génération d'un UUID

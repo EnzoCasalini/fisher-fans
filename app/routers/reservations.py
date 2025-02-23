@@ -77,6 +77,8 @@ def create_reservation(reservation: PydanticReservation, db: Session = Depends(g
     user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == reservation.userId).first()
     if not user:
         raise HTTPException(status_code=400, detail="User does not exist")
+    if trip.user_id == reservation.userId:
+        raise HTTPException(status_code=403, detail="You cannot book your own trip.")
 
     new_reservation = SQLAlchemyReservation(
         id=reservation.id,
@@ -185,6 +187,8 @@ def delete_reservation(reservation_id: str, db: Session = Depends(get_db)):
     reservation = db.query(SQLAlchemyReservation).filter(SQLAlchemyReservation.id == reservation_id).first()
     if not reservation:
         raise HTTPException(status_code=404, detail="Reservation not found")
+    if reservation.date < datetime.utcnow().date():
+        raise HTTPException(status_code=409, detail="Cannot delete past reservations.")
 
     db.delete(reservation)
     db.commit()

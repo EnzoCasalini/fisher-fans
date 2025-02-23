@@ -257,6 +257,9 @@ def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    if user.reservations:
+        raise HTTPException(status_code=409, detail="Cannot delete user with active reservations.")
+
     db.delete(user)
     db.commit()
     return None
