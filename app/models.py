@@ -139,10 +139,10 @@ class UserRead(BaseModel):
     )
     siretNumber: Optional[str] = Field(None, description='SIRET number')
     rcNumber: Optional[str] = Field(None, description='Commercial register number (RC)')
-    boats: Optional[List[Boat]] = None
-    trips: Optional[List[Trip]] = None
-    reservations: Optional[List[Reservation]] = None
-    log: Optional[Log] = None
+    boats: Optional[List[Boat]] = Field(default_factory=list)  # ✅ Par défaut, une liste vide
+    trips: Optional[List[Trip]] = Field(default_factory=list)  # ✅ Par défaut, une liste vide
+    reservations: Optional[List[Reservation]] = Field(default_factory=list)  # ✅ Liste vide par défaut
+    log: Optional[Log] = None  # ✅ Permet `None` au lieu d'un objet obligatoire
 
     class Config:
         from_attributes = True

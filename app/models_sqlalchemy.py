@@ -18,10 +18,11 @@ class User(Base):
     activityType = Column(String, nullable=True)
     siretNumber = Column(String, nullable=True)
     rcNumber = Column(String, nullable=True)
-    trips = relationship("Trip", back_populates="user")
-    boats = relationship("Boat", back_populates="owner")
-    log = relationship("Log", back_populates="user", cascade="all, delete-orphan")
-    reservations = relationship("Reservation", back_populates="user")
+
+    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
+    boats = relationship("Boat", back_populates="owner", cascade="all, delete-orphan")
+    log = relationship("Log", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    reservations = relationship("Reservation", back_populates="user", cascade="all, delete-orphan")
 
 class Trip(Base):
     __tablename__ = "trips"

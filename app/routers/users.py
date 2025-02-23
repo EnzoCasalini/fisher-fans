@@ -89,7 +89,7 @@ def get_users(
 
         # Ajout des pages du log de pêche
         user_dict["log"] = {
-            "id": user.log[0].id,  # On suppose que l'utilisateur n'a qu'un seul log
+            "id": user.log.id,  # On suppose que l'utilisateur n'a qu'un seul log
             "pages": [
                 {
                     "id": page.id,
@@ -102,7 +102,7 @@ def get_users(
                     "dateOfCatch": page.dateOfCatch,
                     "released": page.released,
                 }
-                for page in user.log[0].pages  # ✅ Accéder uniquement au premier log
+                for page in user.log.pages  # ✅ Accéder uniquement au premier log
             ]
         } if user.log else None
 
@@ -171,7 +171,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
 
     # Ajout des pages du log de pêche
     user_dict["log"] = {
-        "id": user.log[0].id,  # On suppose que l'utilisateur n'a qu'un seul log
+        "id": user.log.id,  # On suppose que l'utilisateur n'a qu'un seul log
         "pages": [
             {
                 "id": page.id,
@@ -184,7 +184,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
                 "dateOfCatch": page.dateOfCatch,
                 "released": page.released,
             }
-            for page in user.log[0].pages  # ✅ Accéder uniquement au premier log
+            for page in user.log.pages  # ✅ Accéder uniquement au premier log
         ]
     } if user.log else None
 

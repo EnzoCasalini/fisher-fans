@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.models import Trip as PydanticTrip
 from app.models_sqlalchemy import Trip as SQLAlchemyTrip
+from app.models_sqlalchemy import Boat as SQLAlchemyBoat
+from app.models_sqlalchemy import User as SQLAlchemyUser
 import json
 from datetime import date
 
@@ -60,24 +62,32 @@ def get_v1_trips(
            'endTimes': json.loads(trip.endTimes)
         }) for trip in trips]
 
+
 @router.post(
     '/v1/trips',
     response_model=PydanticTrip,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
-        '403': {'model': Error},
+        '403': {'model': Error},  # 👈 Ajout de la réponse 403
         '422': {'model': Error},
         '500': {'model': Error},
     },
     tags=['Trips'],
 )
 def create_trip(trip: PydanticTrip, db: Session = Depends(get_db)):
+    """
+    Create a new fishing trip.
+    """
+
+    # Vérifier si l'utilisateur possède un bateau
+    has_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.owner_id == trip.user_id).first()
+
+    if not has_boat:
+        raise HTTPException(status_code=403, detail="You cannot create a fishing trip without owning a boat.")
+
     if not trip.id:
         trip.id = str(uuid.uuid4())
-
-    if any(end < start for start, end in zip(trip.startDates, trip.endDates)):
-        raise HTTPException(status_code=400, detail="End date cannot be before start date.")
 
     db_trip = SQLAlchemyTrip(
         id=trip.id,
@@ -93,6 +103,7 @@ def create_trip(trip: PydanticTrip, db: Session = Depends(get_db)):
         price=trip.price,
         user_id=trip.user_id
     )
+
     db.add(db_trip)
     db.commit()
     db.refresh(db_trip)
