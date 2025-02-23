@@ -68,73 +68,57 @@ def get_boats(
 
     return [PydanticBoat.from_orm(boat) for boat in boats]
 
+@router.post('/v1/boats', response_model=None)
+def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> None:
+    # Vérifier si un bateau avec le même ID existe déjà
+    existing_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat.id).first()
+    if existing_boat:
+        raise HTTPException(status_code=409, detail="Boat with this ID already exists.")
 
-@router.post(
-    '/v1/boats',
-    response_model=None,
-    responses={
-        '400': {'model': Error},
-        '401': {'model': Error},
-        '403': {'model': Error},
-        '422': {'model': Error},
-        '500': {'model': Error},
-    },
-    tags=['Boats'],
-)
-def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> Optional[Error]:
-    """
-    Create a new boat.
-    """
     if not boat.id:
         boat.id = str(uuid.uuid4())
 
-    db_boat = SQLAlchemyBoat(
-        id=boat.id,
-        name=boat.name,
-        description=boat.description,
-        brand=boat.brand,
-        manufactureYear=str(boat.manufactureYear),
-        photoUrl=str(boat.photoUrl),
-        licenseType=boat.licenseType,
-        boatType=boat.boatType,
-        equipment=boat.equipment,
-        depositAmount=boat.depositAmount,
-        maxCapacity=boat.maxCapacity,
-        numberOfBeds=boat.numberOfBeds,
-        homePort=boat.homePort,
-        latitude=boat.latitude,
-        longitude=boat.longitude,
-        engineType=boat.engineType,
-        enginePower=boat.enginePower,
-        owner_id=boat.owner_id,
-    )
+    db_boat = SQLAlchemyBoat(**boat.dict())
     db.add(db_boat)
     db.commit()
     db.refresh(db_boat)
-    return None
 
+@router.get('/v1/boats/bbox', response_model=List[PydanticBoat])
+def get_boats_by_bbox(
+    lat_min: float = Query(..., description="Minimum latitude"),
+    lat_max: float = Query(..., description="Maximum latitude"),
+    lon_min: float = Query(..., description="Minimum longitude"),
+    lon_max: float = Query(..., description="Maximum longitude"),
+    db: Session = Depends(get_db),
+) -> List[PydanticBoat]:
+    if lat_min > lat_max or lon_min > lon_max:
+        raise HTTPException(status_code=400, detail="Invalid bounding box: lat_min must be ≤ lat_max and lon_min ≤ lon_max")
 
-@router.get(
-    '/v1/boats/{boat_id}',
-    response_model=PydanticBoat,
-    responses={
-        '400': {'model': Error},
-        '401': {'model': Error},
-        '403': {'model': Error},
-        '404': {'model': Error},
-        '500': {'model': Error},
-    },
-    tags=['Boats'],
-)
+    query = db.query(SQLAlchemyBoat).filter(
+        SQLAlchemyBoat.latitude >= lat_min, SQLAlchemyBoat.latitude <= lat_max,
+        SQLAlchemyBoat.longitude >= lon_min, SQLAlchemyBoat.longitude <= lon_max
+    )
+    boats = query.all()
+
+    if not boats:
+        raise HTTPException(status_code=404, detail="No boats found in the specified area.")
+
+    return [PydanticBoat.from_orm(boat) for boat in boats]  # ✅ Retourne 404 si aucun bateau trouvé
+
+from uuid import UUID
+
+@router.get('/v1/boats/{boat_id}', response_model=PydanticBoat)
 def get_boat_by_id(boat_id: str, db: Session = Depends(get_db)) -> PydanticBoat:
-    """
-    Get a boat by ID.
-    """
+    try:
+        UUID(boat_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid boat ID format")
+
     boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat_id).first()
     if not boat:
         raise HTTPException(status_code=404, detail="Boat not found")
-    return PydanticBoat.from_orm(boat)
 
+    return PydanticBoat.from_orm(boat)
 
 @router.put(
     '/v1/boats/{boat_id}',

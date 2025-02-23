@@ -89,6 +89,36 @@ class Boat(BaseModel):
     class Config:
         from_attributes = True  # Permet l'utilisation de from_orm
 
+class Trip(BaseModel):
+    id: Optional[str] = Field(None, description='Unique identifier of the trip')
+    title: Optional[str] = Field(None, description='Title of the trip')
+    practicalInfo: Optional[str] = Field(None, description='Practical information about the trip')
+    tripType: Optional[TripType] = Field(None, description='Type of trip (daily or recurring)')
+    rateType: Optional[RateType] = Field(None, description='Type of rate (total or per person)')
+    startDates: Optional[List[str]] = Field(None, description='List of start dates for the trip')
+    endDates: Optional[List[str]] = Field(None, description='List of end dates for the trip')
+    departureTimes: Optional[List[str]] = Field(None, description='List of departure times')
+    endTimes: Optional[List[str]] = Field(None, description='List of end times')
+    passengerCount: Optional[int] = Field(None, description='Number of passengers')
+    price: Optional[float] = Field(None, description='Price of the trip')
+    user_id: Optional[str] = Field(None, description='ID of the user associated with this trip')
+
+    class Config:
+        from_attributes = True
+
+
+class Reservation(BaseModel):
+    id: Optional[str] = Field(None, description='Unique identifier of the reservation')
+    trip: Optional[Trip] = None
+    date: Optional[datetime] = None
+    reservedSeats: Optional[int] = None
+    totalPrice: Optional[float] = None
+    userId: Optional[str] = Field(None, description='User who made the reservation')
+
+    class Config:
+        from_attributes = True
+
+
 class UserRead(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the user')
     lastName: Optional[str] = None
@@ -125,54 +155,34 @@ class RateType(str, Enum):
     total = 'total'
     per_person = 'per person'
 
-class Trip(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the trip')
-    title: Optional[str] = Field(None, description='Title of the trip')
-    practicalInfo: Optional[str] = Field(None, description='Practical information about the trip')
-    tripType: Optional[TripType] = Field(None, description='Type of trip (daily or recurring)')
-    rateType: Optional[RateType] = Field(None, description='Type of rate (total or per person)')
-    startDates: Optional[List[str]] = Field(None, description='List of start dates for the trip')
-    endDates: Optional[List[str]] = Field(None, description='List of end dates for the trip')
-    departureTimes: Optional[List[str]] = Field(None, description='List of departure times')
-    endTimes: Optional[List[str]] = Field(None, description='List of end times')
-    passengerCount: Optional[int] = Field(None, description='Number of passengers')
-    price: Optional[float] = Field(None, description='Price of the trip')
-    user_id: Optional[str] = Field(None, description='ID of the user associated with this trip')
+
+class Log(BaseModel):
+    id: Optional[str] = Field(None, description='Unique identifier of the fishing log')
+    user_id: Optional[str] = Field(None, description='ID of the user owning the log')
+    pages: list["Page"] = []  # ✅ Correction pour éviter la récursion
 
     class Config:
         from_attributes = True
 
 
-class Reservation(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the reservation')
-    trip: Optional[Trip] = None
-    date: Optional[datetime] = None
-    reservedSeats: Optional[int] = None
-    totalPrice: Optional[float] = None
-    userId: Optional[str] = Field(None, description='User who made the reservation')
-
-
-class Log(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the log')
-    pages: Optional[List[Page]] = None
-
-
 class Page(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the page entry')
-    fishName: Optional[str] = Field(None, description='Name of the fish')
-    fishPhotoUrl: Optional[AnyUrl] = Field(None, description='URL of the fish photo')
+    id: Optional[str] = Field(None, description='Unique identifier of the fishing log page')
+    log_id: Optional[str] = Field(None, description='ID of the fishing log')
+    fish_name: Optional[str] = Field(None, description='Name of the fish')
+    photo_url: Optional[str] = Field(None, description='URL of the fish photo')
     comment: Optional[str] = Field(None, description='Comment about the catch')
-    length: Optional[float] = Field(
-        None, description='Length of the fish in centimeters'
-    )
-    weight: Optional[float] = Field(None, description='Weight of the fish in kilograms')
-    fishingSpot: Optional[str] = Field(None, description='Fishing location')
-    fishingDate: Optional[date] = Field(None, description='Date of fishing')
-    release: Optional[bool] = Field(
-        None, description='Was the fish released? (true = yes, false = no)'
-    )
-    owner: Optional[UserRead] = None
+    size_cm: Optional[float] = Field(None, description='Size of the fish in cm')
+    weight_kg: Optional[float] = Field(None, description='Weight of the fish in kg')
+    location: Optional[str] = Field(None, description='Fishing location')
+    dateOfCatch: Optional[date] = Field(None, description='Date of the catch')
+    released: Optional[bool] = Field(None, description='Was the fish released?')
+
+    class Config:
+        from_attributes = True
 
 
+# ✅ Évite les erreurs de récursion
 UserRead.update_forward_refs()
-Log.update_forward_refs()
+UserRead.model_rebuild()
+Log.model_rebuild()
+Page.model_rebuild()

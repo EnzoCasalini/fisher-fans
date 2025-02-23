@@ -9,7 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.models import UserRead as PydanticUser
 from app.models_sqlalchemy import User as SQLAlchemyUser
-
+from app.models_sqlalchemy import Reservation as SQLAlchemyReservation
+from app.models_sqlalchemy import Boat as SQLAlchemyBoat
+from app.models_sqlalchemy import Trip as SQLAlchemyTrip
+from app.models_sqlalchemy import Log as SQLAlchemyLog
+from app.models_sqlalchemy import Page as SQLAlchemyPage  # ✅ Import des pages du log
 
 from ..dependencies import *
 
@@ -29,71 +33,82 @@ router = APIRouter(tags=['Users'])
     tags=['Users'],
 )
 def get_users(
-    lastName: Optional[str] = Query(None, description="Filter by last name"),
-    firstName: Optional[str] = Query(None, description="Filter by first name"),
-    email: Optional[str] = Query(None, description="Filter by email"),
-    status: Optional[str] = Query(None, description="Filter by status", enum=[
-                                  "individual", "professional"]),
-    company: Optional[str] = Query(None, description="Filter by company name"),
-    skip: int = Query(0, description="Number of records to skip"),
-    limit: int = Query(10, description="Maximum number of records to return"),
+    company: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 10,
     db: Session = Depends(get_db),
-) -> List[PydanticUser]:
+) -> list[PydanticUser]:
     """
-    Récupère une liste d'utilisateurs avec pagination et filtres multiples.
+    Récupère une liste d'utilisateurs avec leurs bateaux, trips, réservations et leur log de pêche.
     """
     query = db.query(SQLAlchemyUser)
+    if company:
+        query = query.filter(SQLAlchemyUser.companyName.ilike(f"%{company}%"))
 
-    # Appliquer les filtres
-    if lastName:
-        query = query.filter(SQLAlchemyUser.lastName.ilike(f"%{lastName}%"))
-    if firstName:
-        query = query.filter(SQLAlchemyUser.firstName.ilike(f"%{firstName}%"))
-    if email:
-        query = query.filter(SQLAlchemyUser.email.ilike(f"%{email}%"))
-    if status:
-        query = query.filter(SQLAlchemyUser.status == status)
-
-    # Appliquer la pagination
     users = query.offset(skip).limit(limit).all()
 
-    # Retourner la liste formatée avec Pydantic
-    return [PydanticUser.from_orm(user) for user in users]
+    result = []
+    for user in users:
+        user_dict = user.__dict__.copy()
+        user_dict['id'] = str(user.id)
 
+        # Ajout des bateaux
+        user_dict["boats"] = [
+            {
+                "id": boat.id,
+                "name": boat.name,
+                "brand": boat.brand,
+                "homePort": boat.homePort,
+            }
+            for boat in user.boats
+        ] if user.boats else None
 
-@router.post(
-    '/v1/users',
-    response_model=None,
-    responses={
-        '400': {'model': Error},
-        '401': {'model': Error},
-        '403': {'model': Error},
-        '500': {'model': Error},
-    },
-    tags=['Users'],
-)
-def create_user(user: PydanticUser, db: Session = Depends(get_db)) -> Optional[Error]:
-    # Générer un UUID si aucun ID n'est fourni
-    if not user.id:
-        user.id = str(uuid.uuid4())
+        # Ajout des trips
+        user_dict["trips"] = [
+            {
+                "id": trip.id,
+                "title": trip.title,
+                "tripType": trip.tripType,
+                "price": trip.price,
+            }
+            for trip in user.trips
+        ] if user.trips else None
 
-    db_user = SQLAlchemyUser(
-        id=user.id,  # UUID généré ici
-        firstName=user.firstName,
-        lastName=user.lastName,
-        email=user.email,
-        status=user.status,
-        birthDate=user.birthDate,
-        companyName=user.companyName,
-        boatLicense=user.boatLicense,
-        activityType=user.activityType,
-        siretNumber=user.siretNumber,
-        rcNumber=user.rcNumber,
-    )
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    return PydanticUser.from_orm(db_user)
+        # Ajout des réservations (avec uniquement `tripId`)
+        user_dict["reservations"] = [
+            {
+                "id": res.id,
+                "tripId": res.tripId,
+                "date": res.date,
+                "reservedSeats": res.reservedSeats,
+                "totalPrice": res.totalPrice,
+                "userId": res.userId,
+            }
+            for res in user.reservations
+        ]
+
+        # Ajout des pages du log de pêche
+        user_dict["log"] = {
+            "id": user.log[0].id,  # On suppose que l'utilisateur n'a qu'un seul log
+            "pages": [
+                {
+                    "id": page.id,
+                    "fish_name": page.fish_name,
+                    "photo_url": page.photo_url,
+                    "comment": page.comment,
+                    "size_cm": page.size_cm,
+                    "weight_kg": page.weight_kg,
+                    "location": page.location,
+                    "dateOfCatch": page.dateOfCatch,
+                    "released": page.released,
+                }
+                for page in user.log[0].pages  # ✅ Accéder uniquement au premier log
+            ]
+        } if user.log else None
+
+        result.append(PydanticUser(**user_dict))
+
+    return result
 
 
 @router.get(
@@ -109,15 +124,96 @@ def create_user(user: PydanticUser, db: Session = Depends(get_db)) -> Optional[E
     tags=['Users'],
 )
 def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
-    user = db.query(SQLAlchemyUser).filter(
-        SQLAlchemyUser.id == user_id).first()
+    """
+    Récupère un utilisateur par son ID avec ses bateaux, trips, réservations et son log de pêche.
+    """
+    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Convertir en dictionnaire et transformer `id` en string
-    user_dict = user.__dict__
-    user_dict['id'] = str(user_dict['id'])
+    user_dict = user.__dict__.copy()
+    user_dict['id'] = str(user.id)
+
+    # Ajout des bateaux
+    user_dict["boats"] = [
+        {
+            "id": boat.id,
+            "name": boat.name,
+            "brand": boat.brand,
+            "homePort": boat.homePort,
+        }
+        for boat in user.boats
+    ] if user.boats else None
+
+    # Ajout des trips
+    user_dict["trips"] = [
+        {
+            "id": trip.id,
+            "title": trip.title,
+            "tripType": trip.tripType,
+            "price": trip.price,
+        }
+        for trip in user.trips
+    ] if user.trips else None
+
+    # Ajout des réservations (avec uniquement `tripId`)
+    user_dict["reservations"] = [
+        {
+            "id": res.id,
+            "tripId": res.tripId,
+            "date": res.date,
+            "reservedSeats": res.reservedSeats,
+            "totalPrice": res.totalPrice,
+            "userId": res.userId,
+        }
+        for res in user.reservations
+    ]
+
+    # Ajout des pages du log de pêche
+    user_dict["log"] = {
+        "id": user.log[0].id,  # On suppose que l'utilisateur n'a qu'un seul log
+        "pages": [
+            {
+                "id": page.id,
+                "fish_name": page.fish_name,
+                "photo_url": page.photo_url,
+                "comment": page.comment,
+                "size_cm": page.size_cm,
+                "weight_kg": page.weight_kg,
+                "location": page.location,
+                "dateOfCatch": page.dateOfCatch,
+                "released": page.released,
+            }
+            for page in user.log[0].pages  # ✅ Accéder uniquement au premier log
+        ]
+    } if user.log else None
+
     return PydanticUser(**user_dict)
+
+
+@router.post(
+    '/v1/users',
+    response_model=PydanticUser,
+    responses={
+        '400': {'model': Error},
+        '401': {'model': Error},
+        '403': {'model': Error},
+        '500': {'model': Error},
+    },
+    tags=['Users'],
+)
+def create_user(user: PydanticUser, db: Session = Depends(get_db)) -> PydanticUser:
+    """
+    Crée un nouvel utilisateur.
+    """
+    if not user.id:
+        user.id = str(uuid.uuid4())
+
+    db_user = SQLAlchemyUser(**user.dict())
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return PydanticUser.from_orm(db_user)
 
 
 @router.put(
@@ -136,55 +232,31 @@ def update_user(user_id: str, updated_user: PydanticUser, db: Session = Depends(
     """
     Met à jour les informations d'un utilisateur spécifique par son ID.
     """
-    # Rechercher l'utilisateur à mettre à jour
-    user = db.query(SQLAlchemyUser).filter(
-        SQLAlchemyUser.id == user_id).first()
+    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Mettre à jour les champs
-    user.firstName = updated_user.firstName or user.firstName
-    user.lastName = updated_user.lastName or user.lastName
-    user.email = updated_user.email or user.email
-    user.status = updated_user.status or user.status
-    user.birthDate = updated_user.birthDate or user.birthDate
-    user.companyName = updated_user.companyName or user.companyName
-    user.boatLicense = updated_user.boatLicense or user.boatLicense
-    user.activityType = updated_user.activityType or user.activityType
-    user.siretNumber = updated_user.siretNumber or user.siretNumber
-    user.rcNumber = updated_user.rcNumber or user.rcNumber
+    for key, value in updated_user.dict(exclude_unset=True).items():
+        setattr(user, key, value)
 
-    # Sauvegarder les modifications
     db.commit()
     db.refresh(user)
-
     return PydanticUser.from_orm(user)
 
 
 @router.delete(
     '/v1/users/{user_id}',
     response_model=None,
-    responses={
-        '400': {'model': Error},
-        '401': {'model': Error},
-        '403': {'model': Error},
-        '404': {'model': Error},
-        '500': {'model': Error},
-    },
     tags=['Users'],
 )
 def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
     """
     Supprime un utilisateur spécifique par son ID.
     """
-    # Rechercher l'utilisateur à supprimer
-    user = db.query(SQLAlchemyUser).filter(
-        SQLAlchemyUser.id == user_id).first()
+    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    # Supprimer l'utilisateur
     db.delete(user)
     db.commit()
-
-    return None  # Retourne un code 204 (No Content)
+    return None
