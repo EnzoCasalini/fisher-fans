@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
 from app.models import Boat as PydanticBoat
 from app.models_sqlalchemy import Boat as SQLAlchemyBoat
+from app.models_sqlalchemy import User as SQLAlchemyUser
+
 from ..dependencies import *
 
 router = APIRouter(tags=['Boats'])
@@ -67,13 +69,23 @@ def get_boats(
             boat.longitude = str(boat.longitude)
 
     return [PydanticBoat.from_orm(boat) for boat in boats]
-
 @router.post('/v1/boats', response_model=None)
 def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> None:
+    """
+    Create a new boat, but only if the user has a boat license
+    """
     # Vérifier si un bateau avec le même ID existe déjà
     existing_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat.id).first()
     if existing_boat:
         raise HTTPException(status_code=409, detail="Boat with this ID already exists.")
+
+    # Vérifier si l'utilisateur existe et possède un permis bateau
+    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == boat.owner_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    if not user.boatLicense:  # ✅ Vérification du permis bateau
+        raise HTTPException(status_code=403, detail="You cannot create a boat without a boat license.")
 
     if not boat.id:
         boat.id = str(uuid.uuid4())
