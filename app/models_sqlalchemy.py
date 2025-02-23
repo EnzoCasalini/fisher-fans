@@ -42,6 +42,7 @@ class Trip(Base):
 
     user = relationship("User", back_populates="trips")
     boats = relationship("Boat", back_populates="trips")
+    reservations = relationship("Reservation", back_populates="trip")
 
 class Boat(Base):
     __tablename__ = "boats"
@@ -103,3 +104,4 @@ class Reservation(Base):
     userId = Column(String, ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="reservations")
+    trip = relationship("Trip", back_populates="reservations")

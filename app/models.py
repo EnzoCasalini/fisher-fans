@@ -89,6 +89,36 @@ class Boat(BaseModel):
     class Config:
         from_attributes = True  # Permet l'utilisation de from_orm
 
+class Trip(BaseModel):
+    id: Optional[str] = Field(None, description='Unique identifier of the trip')
+    title: Optional[str] = Field(None, description='Title of the trip')
+    practicalInfo: Optional[str] = Field(None, description='Practical information about the trip')
+    tripType: Optional[TripType] = Field(None, description='Type of trip (daily or recurring)')
+    rateType: Optional[RateType] = Field(None, description='Type of rate (total or per person)')
+    startDates: Optional[List[str]] = Field(None, description='List of start dates for the trip')
+    endDates: Optional[List[str]] = Field(None, description='List of end dates for the trip')
+    departureTimes: Optional[List[str]] = Field(None, description='List of departure times')
+    endTimes: Optional[List[str]] = Field(None, description='List of end times')
+    passengerCount: Optional[int] = Field(None, description='Number of passengers')
+    price: Optional[float] = Field(None, description='Price of the trip')
+    user_id: Optional[str] = Field(None, description='ID of the user associated with this trip')
+
+    class Config:
+        from_attributes = True
+
+
+class Reservation(BaseModel):
+    id: Optional[str] = Field(None, description='Unique identifier of the reservation')
+    trip: Optional[Trip] = None
+    date: Optional[datetime] = None
+    reservedSeats: Optional[int] = None
+    totalPrice: Optional[float] = None
+    userId: Optional[str] = Field(None, description='User who made the reservation')
+
+    class Config:
+        from_attributes = True
+
+
 class UserRead(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the user')
     lastName: Optional[str] = None
@@ -125,33 +155,6 @@ class RateType(str, Enum):
     total = 'total'
     per_person = 'per person'
 
-class Trip(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the trip')
-    title: Optional[str] = Field(None, description='Title of the trip')
-    practicalInfo: Optional[str] = Field(None, description='Practical information about the trip')
-    tripType: Optional[TripType] = Field(None, description='Type of trip (daily or recurring)')
-    rateType: Optional[RateType] = Field(None, description='Type of rate (total or per person)')
-    startDates: Optional[List[str]] = Field(None, description='List of start dates for the trip')
-    endDates: Optional[List[str]] = Field(None, description='List of end dates for the trip')
-    departureTimes: Optional[List[str]] = Field(None, description='List of departure times')
-    endTimes: Optional[List[str]] = Field(None, description='List of end times')
-    passengerCount: Optional[int] = Field(None, description='Number of passengers')
-    price: Optional[float] = Field(None, description='Price of the trip')
-    user_id: Optional[str] = Field(None, description='ID of the user associated with this trip')
-
-    class Config:
-        from_attributes = True
-
-
-class Reservation(BaseModel):
-    id: Optional[str] = Field(None, description='Unique identifier of the reservation')
-    trip: Optional[Trip] = None
-    date: Optional[datetime] = None
-    reservedSeats: Optional[int] = None
-    totalPrice: Optional[float] = None
-    userId: Optional[str] = Field(None, description='User who made the reservation')
-
-
 
 class Log(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the fishing log')
@@ -179,6 +182,7 @@ class Page(BaseModel):
 
 
 # ✅ Évite les erreurs de récursion
+UserRead.update_forward_refs()
 UserRead.model_rebuild()
 Log.model_rebuild()
 Page.model_rebuild()
