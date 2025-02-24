@@ -2,7 +2,7 @@
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
     <data-source source="LOCAL" name="fisherfans" uuid="9f13c120-fadb-4fd1-aede-7d3049e45542">
-      <driver-ref>1a0db424-8419-4606-bb15-112ae2df7a9b</driver-ref>
+      <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/fisherfans.db</jdbc-url>
@@ -14,7 +14,7 @@
       </libraries>
     </data-source>
     <data-source source="LOCAL" name="FF" uuid="3ef4d46c-4e6f-4762-880b-8901f8bb2b4e">
-      <driver-ref>1a0db424-8419-4606-bb15-112ae2df7a9b</driver-ref>
+      <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/FF.db</jdbc-url>
