@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import uuid
 from typing import List, Optional
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.models import UserRead, UserCreate, Error
 from app.models_sqlalchemy import User as SQLAlchemyUser
 from app.routers.auth import get_current_user
 from app.auth.auth_utils import get_password_hash
-from app.dependencies import get_db
+from app.models_sqlalchemy import (
+    User as SQLAlchemyUser,
+)
+
+from ..dependencies import get_db, Error
 
 router = APIRouter(tags=['Users'])
 
@@ -34,17 +37,93 @@ def read_users_me(current_user: SQLAlchemyUser = Depends(get_current_user)):
     },
 )
 def get_users(
-    company: Optional[str] = None,  # Filtre optionnel par companyName
-    skip: int = 0,
-    limit: int = 10,
+    lastName: Optional[str] = Query(None, description="Filter by last name"),
+    firstName: Optional[str] = Query(None, description="Filter by first name"),
+    email: Optional[str] = Query(None, description="Filter by email"),
+    status: Optional[str] = Query(None, description="Filter by status", enum=["individual", "professional"]),
+    company: Optional[str] = Query(None, description="Filter by company name"),
+    skip: int = Query(0, description="Number of records to skip"),
+    limit: int = Query(10, description="Maximum number of records to return"),
     db: Session = Depends(get_db),
 ) -> List[UserRead]:
     query = db.query(SQLAlchemyUser)
+
+    # Apply filters
+    if lastName:
+        query = query.filter(SQLAlchemyUser.lastName.ilike(f"%{lastName}%"))
+    if firstName:
+        query = query.filter(SQLAlchemyUser.firstName.ilike(f"%{firstName}%"))
+    if email:
+        query = query.filter(SQLAlchemyUser.email.ilike(f"%{email}%"))
+    if status:
+        query = query.filter(SQLAlchemyUser.status == status)
     if company:
         query = query.filter(SQLAlchemyUser.companyName.ilike(f"%{company}%"))
-    users = query.offset(skip).limit(limit).all()
-    return [UserRead.from_orm(user) for user in users]
 
+    users = query.offset(skip).limit(limit).all()
+
+    result = []
+    for user in users:
+        user_dict = user.__dict__.copy()
+        user_dict['id'] = str(user.id)
+
+        # Add boats
+        user_dict["boats"] = [
+            {
+                "id": boat.id,
+                "name": boat.name,
+                "brand": boat.brand,
+                "homePort": boat.homePort,
+            }
+            for boat in user.boats
+        ] if user.boats else None
+
+        # Add trips
+        user_dict["trips"] = [
+            {
+                "id": trip.id,
+                "title": trip.title,
+                "tripType": trip.tripType,
+                "price": trip.price,
+            }
+            for trip in user.trips
+        ] if user.trips else None
+
+        # Add reservations
+        user_dict["reservations"] = [
+            {
+                "id": res.id,
+                "tripId": res.tripId,
+                "date": res.date,
+                "reservedSeats": res.reservedSeats,
+                "totalPrice": res.totalPrice,
+                "userId": res.userId,
+            }
+            for res in user.reservations
+        ]
+
+        # Add fishing log pages
+        user_dict["log"] = {
+            "id": user.log.id if user.log else None,
+            "pages": [
+                {
+                    "id": page.id,
+                    "fish_name": page.fish_name,
+                    "photo_url": page.photo_url,
+                    "comment": page.comment,
+                    "size_cm": page.size_cm,
+                    "weight_kg": page.weight_kg,
+                    "location": page.location,
+                    "dateOfCatch": page.dateOfCatch,
+                    "released": page.released,
+                }
+                for page in user.log.pages
+            ] if user.log else []
+        } if user.log else None
+
+        result.append(UserRead(**user_dict))
+
+    return result
 
 # Endpoint public : inscription / création d'un utilisateur
 @router.post(
@@ -56,6 +135,7 @@ def get_users(
         '403': {'model': Error},
         '500': {'model': Error},
     },
+    tags=['Users'],
 )
 def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserRead:
     # Générer un UUID si aucun ID n'est fourni
@@ -94,14 +174,70 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserRead:
         '404': {'model': Error},
         '500': {'model': Error},
     },
+    tags=['Users'],
 )
 def get_user(user_id: str, db: Session = Depends(get_db)) -> UserRead:
     user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     # Transformation du champ id en chaîne de caractères
-    user_dict = user.__dict__
-    user_dict['id'] = str(user_dict['id'])
+    user_dict = user.__dict__.copy()
+    user_dict['id'] = str(user.id)
+
+    # Add boats
+    user_dict["boats"] = [
+        {
+            "id": boat.id,
+            "name": boat.name,
+            "brand": boat.brand,
+            "homePort": boat.homePort,
+        }
+        for boat in user.boats
+    ] if user.boats else None
+
+    # Add trips
+    user_dict["trips"] = [
+        {
+            "id": trip.id,
+            "title": trip.title,
+            "tripType": trip.tripType,
+            "price": trip.price,
+        }
+        for trip in user.trips
+    ] if user.trips else None
+
+    # Add reservations
+    user_dict["reservations"] = [
+        {
+            "id": res.id,
+            "tripId": res.tripId,
+            "date": res.date,
+            "reservedSeats": res.reservedSeats,
+            "totalPrice": res.totalPrice,
+            "userId": res.userId,
+        }
+        for res in user.reservations
+    ]
+
+    # Add fishing log pages
+    user_dict["log"] = {
+        "id": user.log.id if user.log else None,
+        "pages": [
+            {
+                "id": page.id,
+                "fish_name": page.fish_name,
+                "photo_url": page.photo_url,
+                "comment": page.comment,
+                "size_cm": page.size_cm,
+                "weight_kg": page.weight_kg,
+                "location": page.location,
+                "dateOfCatch": page.dateOfCatch,
+                "released": page.released,
+            }
+            for page in user.log.pages
+        ] if user.log else []
+    } if user.log else None
+
     return UserRead(**user_dict)
 
 
@@ -116,6 +252,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> UserRead:
         '404': {'model': Error},
         '500': {'model': Error},
     },
+    tags=['Users'],
 )
 def update_user(
     user_id: str,
@@ -127,17 +264,11 @@ def update_user(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     # Mise à jour des champs (vous pouvez ajouter une vérification pour s'assurer que current_user est autorisé)
-    user.firstName = updated_user.firstName or user.firstName
-    user.lastName = updated_user.lastName or user.lastName
-    user.email = updated_user.email or user.email
-    user.status = updated_user.status or user.status
-    user.birthDate = updated_user.birthDate or user.birthDate
-    user.companyName = updated_user.companyName or user.companyName
-    user.boatLicense = updated_user.boatLicense or user.boatLicense
-    user.activityType = updated_user.activityType or user.activityType
-    user.siretNumber = updated_user.siretNumber or user.siretNumber
-    user.rcNumber = updated_user.rcNumber or user.rcNumber
 
+    for key, value in updated_user.dict(exclude_unset=True, exclude={"boats", "trips", "reservations", "log"}).items():
+        setattr(user, key, value)
+
+    # Sauvegarder les modifications
     db.commit()
     db.refresh(user)
     return UserRead.from_orm(user)
@@ -154,6 +285,7 @@ def update_user(
         '404': {'model': Error},
         '500': {'model': Error},
     },
+    tags=['Users'],
 )
 def delete_user(
     user_id: str,
@@ -163,6 +295,9 @@ def delete_user(
     user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+
+    if user.reservations:
+        raise HTTPException(status_code=409, detail="Cannot delete user with active reservations.")
 
     # Anonymisation des données personnelles
     user.login = f"anonymised_{user.id}"

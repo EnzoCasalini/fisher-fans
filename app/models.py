@@ -90,43 +90,6 @@ class Boat(BaseModel):
         from_attributes = True  # Permet l'utilisation de from_orm
 
 
-class UserBase(BaseModel):
-    id: Optional[str] = Field(None, description="Unique identifier of the user")
-    login: str = Field(..., description="Login of the user")
-    email: EmailStr = Field(..., description="User email")
-    lastName: Optional[str] = None
-    firstName: Optional[str] = None
-    birthDate: Optional[date] = None
-    boatLicense: Optional[str] = Field(None, description="Boat license number (8 digits)")
-    status: Optional[Status] = Field(None, description="Status of the user")
-    companyName: Optional[str] = Field(None, description="Company name (if applicable)")
-    activityType: Optional[str] = Field(None, description="Type of activity (rental or fishing guide)")
-    siretNumber: Optional[str] = Field(None, description="SIRET number")
-    rcNumber: Optional[str] = Field(None, description="Commercial register number (RC)")
-
-
-class UserCreate(UserBase):
-    password: str = Field(..., description="Password in plain text (will be hashed)")
-
-
-class UserRead(UserBase):
-    boats: Optional[List[Boat]] = None
-    trips: Optional[List[Trip]] = None
-    reservations: Optional[List[Reservation]] = None
-    log: Optional[Log] = None
-
-    class Config:
-        from_attributes = True
-
-
-class TripType(str, Enum):
-    daily = 'daily'
-    recurring = 'recurring'
-
-class RateType(str, Enum):
-    total = 'total'
-    per_person = 'per person'
-
 class Trip(BaseModel):
     id: Optional[str] = Field(None, description='Unique identifier of the trip')
     title: Optional[str] = Field(None, description='Title of the trip')
@@ -153,6 +116,53 @@ class Reservation(BaseModel):
     totalPrice: Optional[float] = None
     userId: Optional[str] = Field(None, description='User who made the reservation')
 
+    class Config:
+        from_attributes = True
+
+
+class UserBase(BaseModel):
+    id: Optional[str] = Field(None, description="Unique identifier of the user")
+    login: str = Field(..., description="Login of the user")
+    email: Optional[EmailStr] = None
+    lastName: Optional[str] = None
+    firstName: Optional[str] = None
+    birthDate: Optional[date] = None
+    boatLicense: Optional[str] = Field(
+        None, description='Boat license number (8 digits)'
+    )
+    status: Optional[Status] = Field(
+        None, description='Status of the user (individual or professional)'
+    )
+    companyName: Optional[str] = Field(
+        None, description='Company name (empty if individual)'
+    )
+    activityType: Optional[str] = Field(
+        None, description='Type of activity (rental or fishing guide)'
+    )
+    siretNumber: Optional[str] = Field(None, description='SIRET number')
+    rcNumber: Optional[str] = Field(None, description='Commercial register number (RC)')
+
+
+class UserCreate(UserBase):
+    password: str = Field(..., description="Password in plain text (will be hashed)")
+
+
+class UserRead(UserBase):
+    boats: Optional[List[Boat]] = Field(default_factory=list)  # ✅ Par défaut, une liste vide
+    trips: Optional[List[Trip]] = Field(default_factory=list)  # ✅ Par défaut, une liste vide
+    reservations: Optional[List[Reservation]] = Field(default_factory=list)  # ✅ Liste vide par défaut
+    log: Optional[Log] = None  # ✅ Permet `None` au lieu d'un objet obligatoire
+
+    class Config:
+        from_attributes = True
+
+class TripType(str, Enum):
+    daily = 'daily'
+    recurring = 'recurring'
+
+class RateType(str, Enum):
+    total = 'total'
+    per_person = 'per person'
 
 
 class Log(BaseModel):
@@ -181,6 +191,7 @@ class Page(BaseModel):
 
 
 # ✅ Évite les erreurs de récursion
+UserRead.update_forward_refs()
 UserRead.model_rebuild()
 Log.model_rebuild()
 Page.model_rebuild()

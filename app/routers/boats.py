@@ -10,6 +10,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
 from app.models import Boat as PydanticBoat
 from app.models_sqlalchemy import Boat as SQLAlchemyBoat
+from app.models_sqlalchemy import User as SQLAlchemyUser
+
 from ..dependencies import *
 from app.routers.auth import get_current_user
 
@@ -33,11 +35,11 @@ router = APIRouter(
     tags=['Boats'],
 )
 def get_boats(
-    user_id: Optional[str] = Query(None, alias='userId'),
+    userId: Optional[str] = Query(None, alias='userId'),
     name: Optional[str] = None,
     brand: Optional[str] = None,
-    boat_type: Optional[str] = Query(None, alias='boatType'),
-    home_port: Optional[str] = Query(None, alias='homePort'),
+    boatType: Optional[str] = Query(None, alias='boatType'),
+    homePort: Optional[str] = Query(None, alias='homePort'),
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db),
@@ -47,16 +49,16 @@ def get_boats(
     """
     query = db.query(SQLAlchemyBoat)
 
-    if user_id:
-        query = query.filter(SQLAlchemyBoat.owner_id == user_id)
+    if userId:
+        query = query.filter(SQLAlchemyBoat.owner_id == userId)
     if name:
         query = query.filter(SQLAlchemyBoat.name.ilike(f"%{name}%"))
     if brand:
         query = query.filter(SQLAlchemyBoat.brand.ilike(f"%{brand}%"))
-    if boat_type:
-        query = query.filter(SQLAlchemyBoat.boatType.ilike(f"%{boat_type}%"))
-    if home_port:
-        query = query.filter(SQLAlchemyBoat.homePort.ilike(f"%{home_port}%"))
+    if boatType:
+        query = query.filter(SQLAlchemyBoat.boatType.ilike(f"%{boatType}%"))
+    if homePort:
+        query = query.filter(SQLAlchemyBoat.homePort.ilike(f"%{homePort}%"))
 
     boats = query.offset(skip).limit(limit).all()
 
@@ -72,51 +74,31 @@ def get_boats(
             boat.longitude = str(boat.longitude)
 
     return [PydanticBoat.from_orm(boat) for boat in boats]
-
-
-@router.post(
-    '/v1/boats',
-    response_model=None,
-    responses={
-        '400': {'model': Error},
-        '401': {'model': Error},
-        '403': {'model': Error},
-        '422': {'model': Error},
-        '500': {'model': Error},
-    },
-    tags=['Boats'],
-)
-def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> Optional[Error]:
+@router.post('/v1/boats', response_model=None)
+def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> None:
     """
-    Create a new boat.
+    Create a new boat, but only if the user has a boat license
     """
+    # Vérifier si un bateau avec le même ID existe déjà
+    existing_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat.id).first()
+    if existing_boat:
+        raise HTTPException(status_code=409, detail="Boat with this ID already exists.")
+
+    # Vérifier si l'utilisateur existe et possède un permis bateau
+    user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == boat.owner_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    if not user.boatLicense:  # ✅ Vérification du permis bateau
+        raise HTTPException(status_code=403, detail="You cannot create a boat without a boat license.")
+
     if not boat.id:
         boat.id = str(uuid.uuid4())
 
-    db_boat = SQLAlchemyBoat(
-        id=boat.id,
-        name=boat.name,
-        description=boat.description,
-        brand=boat.brand,
-        manufactureYear=str(boat.manufactureYear),
-        photoUrl=str(boat.photoUrl),
-        licenseType=boat.licenseType,
-        boatType=boat.boatType,
-        equipment=boat.equipment,
-        depositAmount=boat.depositAmount,
-        maxCapacity=boat.maxCapacity,
-        numberOfBeds=boat.numberOfBeds,
-        homePort=boat.homePort,
-        latitude=boat.latitude,
-        longitude=boat.longitude,
-        engineType=boat.engineType,
-        enginePower=boat.enginePower,
-        owner_id=boat.owner_id,
-    )
+    db_boat = SQLAlchemyBoat(**boat.dict())
     db.add(db_boat)
     db.commit()
     db.refresh(db_boat)
-    return None
 
 @router.get('/v1/boats/bbox', response_model=List[PydanticBoat])
 def get_boats_by_bbox(
@@ -140,27 +122,20 @@ def get_boats_by_bbox(
 
     return [PydanticBoat.from_orm(boat) for boat in boats]  # ✅ Retourne 404 si aucun bateau trouvé
 
-@router.get(
-    '/v1/boats/{boat_id}',
-    response_model=PydanticBoat,
-    responses={
-        '400': {'model': Error},
-        '401': {'model': Error},
-        '403': {'model': Error},
-        '404': {'model': Error},
-        '500': {'model': Error},
-    },
-    tags=['Boats'],
-)
+from uuid import UUID
+
+@router.get('/v1/boats/{boat_id}', response_model=PydanticBoat)
 def get_boat_by_id(boat_id: str, db: Session = Depends(get_db)) -> PydanticBoat:
-    """
-    Get a boat by ID.
-    """
+    try:
+        UUID(boat_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid boat ID format")
+
     boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat_id).first()
     if not boat:
         raise HTTPException(status_code=404, detail="Boat not found")
-    return PydanticBoat.from_orm(boat)
 
+    return PydanticBoat.from_orm(boat)
 
 @router.put(
     '/v1/boats/{boat_id}',
@@ -183,6 +158,10 @@ def update_boat(
     db_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat_id).first()
     if not db_boat:
         raise HTTPException(status_code=404, detail="Boat not found")
+
+    # need to have a user identifier
+    # if db_boat.owner_id != user_id:
+    #     raise HTTPException(status_code=403, detail="You cannot edit a boat you do not own.")
 
     for key, value in boat.dict(exclude_unset=True).items():
         setattr(db_boat, key, value)
@@ -211,6 +190,8 @@ def delete_boat(boat_id: str, db: Session = Depends(get_db)) -> Optional[Error]:
     db_boat = db.query(SQLAlchemyBoat).filter(SQLAlchemyBoat.id == boat_id).first()
     if not db_boat:
         raise HTTPException(status_code=404, detail="Boat not found")
+    if db_boat.trips:
+        raise HTTPException(status_code=409, detail="Cannot delete boat linked to active trips.")
 
     db.delete(db_boat)
     db.commit()

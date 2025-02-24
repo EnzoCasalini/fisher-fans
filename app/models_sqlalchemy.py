@@ -22,10 +22,11 @@ class User(Base):
     siretNumber = Column(String, nullable=True)
     rcNumber = Column(String, nullable=True)
     isAnonymised = Column(Boolean, default=False)
-    trips = relationship("Trip", back_populates="user")
-    boats = relationship("Boat", back_populates="owner")
-    log = relationship("Log", back_populates="user", cascade="all, delete-orphan")
-    reservations = relationship("Reservation", back_populates="user")
+    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
+    boats = relationship("Boat", back_populates="owner", cascade="all, delete-orphan")
+    log = relationship("Log", back_populates="user", cascade="all, delete-orphan", uselist=False)
+    reservations = relationship("Reservation", back_populates="user", cascade="all, delete-orphan")
+
 
 class Trip(Base):
     __tablename__ = "trips"
@@ -46,6 +47,8 @@ class Trip(Base):
 
     user = relationship("User", back_populates="trips")
     boats = relationship("Boat", back_populates="trips")
+    reservations = relationship("Reservation", back_populates="trip")
+
 
 class Boat(Base):
     __tablename__ = "boats"
@@ -72,6 +75,7 @@ class Boat(Base):
     owner_id = Column(String, ForeignKey("users.id"), nullable=False)
     owner = relationship("User", back_populates="boats")
 
+
 class Log(Base):
     __tablename__ = "log"
 
@@ -79,6 +83,7 @@ class Log(Base):
     user_id = Column(String, ForeignKey("users.id"), nullable=False, unique=True)
     user = relationship("User", back_populates="log")
     pages = relationship("Page", back_populates="log", cascade="all, delete-orphan")
+
 
 class Page(Base):
     __tablename__ = "pages"
@@ -96,6 +101,7 @@ class Page(Base):
 
     log = relationship("Log", back_populates="pages")
 
+
 class Reservation(Base):
     __tablename__ = "reservations"
 
@@ -107,3 +113,4 @@ class Reservation(Base):
     userId = Column(String, ForeignKey("users.id"), nullable=False)
 
     user = relationship("User", back_populates="reservations")
+    trip = relationship("Trip", back_populates="reservations")
