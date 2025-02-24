@@ -4,7 +4,11 @@ import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.models import UserRead as PydanticUser
+
+from app.models import UserRead, UserCreate, Error
+from app.models_sqlalchemy import User as SQLAlchemyUser
+from app.routers.auth import get_current_user
+from app.auth.auth_utils import get_password_hash
 from app.models_sqlalchemy import (
     User as SQLAlchemyUser,
 )
@@ -13,9 +17,17 @@ from ..dependencies import get_db, Error
 
 router = APIRouter(tags=['Users'])
 
+
+# Endpoint protégé : récupérer l'utilisateur connecté
+@router.get("/v1/users/me", response_model=UserRead, summary="Get the current user's information.")
+def read_users_me(current_user: SQLAlchemyUser = Depends(get_current_user)):
+    return UserRead.from_orm(current_user)
+
+
+# Endpoint public : récupérer la liste des utilisateurs
 @router.get(
     '/v1/users',
-    response_model=List[PydanticUser],
+    response_model=List[UserRead],
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -33,10 +45,7 @@ def get_users(
     skip: int = Query(0, description="Number of records to skip"),
     limit: int = Query(10, description="Maximum number of records to return"),
     db: Session = Depends(get_db),
-) -> List[PydanticUser]:
-    """
-    Récupère une liste d'utilisateurs avec pagination et filtres multiples.
-    """
+) -> List[UserRead]:
     query = db.query(SQLAlchemyUser)
 
     # Apply filters
@@ -95,7 +104,7 @@ def get_users(
 
         # Add fishing log pages
         user_dict["log"] = {
-            "id": user.log[0].id if user.log else None,
+            "id": user.log.id if user.log else None,
             "pages": [
                 {
                     "id": page.id,
@@ -108,40 +117,56 @@ def get_users(
                     "dateOfCatch": page.dateOfCatch,
                     "released": page.released,
                 }
-                for page in user.log[0].pages
+                for page in user.log.pages
             ] if user.log else []
         } if user.log else None
 
-        result.append(PydanticUser(**user_dict))
+        result.append(UserRead(**user_dict))
 
     return result
 
+# Endpoint public : inscription / création d'un utilisateur
 @router.post(
     '/v1/users',
-    response_model=PydanticUser,
+    response_model=UserRead,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
         '403': {'model': Error},
         '500': {'model': Error},
     },
+    tags=['Users'],
 )
-def create_user(user: PydanticUser, db: Session = Depends(get_db)) -> PydanticUser:
-    """
-    Crée un nouvel utilisateur.
-    """
+def create_user(user: UserCreate, db: Session = Depends(get_db)) -> UserRead:
+    # Générer un UUID si aucun ID n'est fourni
     if not user.id:
         user.id = str(uuid.uuid4())
-
-    db_user = SQLAlchemyUser(**user.dict(exclude={"boats", "trips", "reservations", "log"}))
+    hashed_password = get_password_hash(user.password)
+    db_user = SQLAlchemyUser(
+        id=user.id,
+        login=user.login,
+        hashedPassword=hashed_password,
+        firstName=user.firstName,
+        lastName=user.lastName,
+        email=user.email,
+        status=user.status,
+        birthDate=user.birthDate,
+        companyName=user.companyName,
+        boatLicense=user.boatLicense,
+        activityType=user.activityType,
+        siretNumber=user.siretNumber,
+        rcNumber=user.rcNumber,
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return PydanticUser.from_orm(db_user)
+    return UserRead.from_orm(db_user)
 
+
+# Endpoint public : récupérer un utilisateur par ID
 @router.get(
     '/v1/users/{user_id}',
-    response_model=PydanticUser,
+    response_model=UserRead,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -149,15 +174,13 @@ def create_user(user: PydanticUser, db: Session = Depends(get_db)) -> PydanticUs
         '404': {'model': Error},
         '500': {'model': Error},
     },
+    tags=['Users'],
 )
-def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
-    """
-    Récupère un utilisateur par son ID avec ses bateaux, trips, réservations et son log de pêche.
-    """
+def get_user(user_id: str, db: Session = Depends(get_db)) -> UserRead:
     user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-
+    # Transformation du champ id en chaîne de caractères
     user_dict = user.__dict__.copy()
     user_dict['id'] = str(user.id)
 
@@ -198,7 +221,7 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
 
     # Add fishing log pages
     user_dict["log"] = {
-        "id": user.log[0].id if user.log else None,
+        "id": user.log.id if user.log else None,
         "pages": [
             {
                 "id": page.id,
@@ -211,15 +234,17 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
                 "dateOfCatch": page.dateOfCatch,
                 "released": page.released,
             }
-            for page in user.log[0].pages
+            for page in user.log.pages
         ] if user.log else []
     } if user.log else None
 
-    return PydanticUser(**user_dict)
+    return UserRead(**user_dict)
 
+
+# Endpoint protégé : mettre à jour un utilisateur (authentification requise)
 @router.put(
     '/v1/users/{user_id}',
-    response_model=PydanticUser,
+    response_model=UserRead,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -227,22 +252,29 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> PydanticUser:
         '404': {'model': Error},
         '500': {'model': Error},
     },
+    tags=['Users'],
 )
-def update_user(user_id: str, updated_user: PydanticUser, db: Session = Depends(get_db)) -> PydanticUser:
-    """
-    Met à jour les informations d'un utilisateur spécifique par son ID.
-    """
+def update_user(
+    user_id: str,
+    updated_user: UserRead,
+    db: Session = Depends(get_db),
+    current_user: SQLAlchemyUser = Depends(get_current_user)  # Ici, l'utilisateur doit être authentifié
+) -> UserRead:
     user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
+    # Mise à jour des champs (vous pouvez ajouter une vérification pour s'assurer que current_user est autorisé)
 
     for key, value in updated_user.dict(exclude_unset=True, exclude={"boats", "trips", "reservations", "log"}).items():
         setattr(user, key, value)
 
+    # Sauvegarder les modifications
     db.commit()
     db.refresh(user)
-    return PydanticUser.from_orm(user)
+    return UserRead.from_orm(user)
 
+
+# Endpoint protégé : supprimer un utilisateur (authentification requise)
 @router.delete(
     '/v1/users/{user_id}',
     response_model=None,
@@ -253,11 +285,13 @@ def update_user(user_id: str, updated_user: PydanticUser, db: Session = Depends(
         '404': {'model': Error},
         '500': {'model': Error},
     },
+    tags=['Users'],
 )
-def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
-    """
-    Supprime un utilisateur spécifique par son ID.
-    """
+def delete_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: SQLAlchemyUser = Depends(get_current_user)
+) -> None:
     user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -265,6 +299,14 @@ def delete_user(user_id: str, db: Session = Depends(get_db)) -> None:
     if user.reservations:
         raise HTTPException(status_code=409, detail="Cannot delete user with active reservations.")
 
-    db.delete(user)
+    # Anonymisation des données personnelles
+    user.login = f"anonymised_{user.id}"
+    user.firstName = None
+    user.lastName = None
+    user.email = None
+    user.boatLicense = None
+    # Maybe remove other fields as well
+    user.isAnonymised = True
+
     db.commit()
     return None

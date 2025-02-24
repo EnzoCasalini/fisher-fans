@@ -13,8 +13,13 @@ from app.models_sqlalchemy import Boat as SQLAlchemyBoat
 from app.models_sqlalchemy import User as SQLAlchemyUser
 
 from ..dependencies import *
+from app.routers.auth import get_current_user
 
-router = APIRouter(tags=['Boats'])
+
+router = APIRouter(
+    tags=['Boats'],
+    dependencies=[Depends(get_current_user)]
+)
 
 
 @router.get(

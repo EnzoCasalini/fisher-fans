@@ -17,10 +17,13 @@ from app.models_sqlalchemy import User as SQLAlchemyUser
 
 from datetime import date
 from ..dependencies import *
+from app.routers.auth import get_current_user
 
 
-router = APIRouter(tags=['Reservations'])
-
+router = APIRouter(
+    tags=['Reservations'],
+    dependencies=[Depends(get_current_user)]
+)
 
 @router.get(
     '/v1/reservations',
