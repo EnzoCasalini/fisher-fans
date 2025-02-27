@@ -118,7 +118,7 @@ def update_log_page(
 
 @router.delete("/v1/log/{user_id}/pages/{page_id}", status_code=204)
 def delete_log_page(user_id: str = Path(...), page_id: str = Path(...),
-                    db: Session = Depends(get_db)) -> dict:
+                    db: Session = Depends(get_db)) -> None:
     """
     Delete a page from a user's fishing log
     """
@@ -128,4 +128,4 @@ def delete_log_page(user_id: str = Path(...), page_id: str = Path(...),
 
     db.delete(db_page)
     db.commit()
-    return {"message": "Page deleted successfully"}
+    return None
