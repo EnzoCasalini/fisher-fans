@@ -84,6 +84,7 @@ def get_v1_trips(
 @router.post(
     '/v1/trips',
     response_model=PydanticTrip,
+    status_code=201,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -213,6 +214,7 @@ def put_v1_trips_trip_id(
 @router.delete(
     '/v1/trips/{tripId}',
     response_model=None,
+    status_code=204,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},

@@ -116,7 +116,7 @@ def update_log_page(
     db.refresh(db_page)
     return PydanticPage.model_validate(db_page)
 
-@router.delete("/v1/log/{user_id}/pages/{page_id}")
+@router.delete("/v1/log/{user_id}/pages/{page_id}", status_code=204)
 def delete_log_page(user_id: str = Path(...), page_id: str = Path(...),
                     db: Session = Depends(get_db)) -> dict:
     """

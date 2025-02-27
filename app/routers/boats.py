@@ -74,7 +74,7 @@ def get_boats(
             boat.longitude = str(boat.longitude)
 
     return [PydanticBoat.from_orm(boat) for boat in boats]
-@router.post('/v1/boats', response_model=None)
+@router.post('/v1/boats', status_code=201, response_model=None)
 def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> Boat:
     """
     Create a new boat, but only if the user has a boat license
@@ -176,6 +176,7 @@ def update_boat(
 @router.delete(
     '/v1/boats/{boat_id}',
     response_model=None,
+    status_code=204,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},

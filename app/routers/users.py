@@ -126,6 +126,7 @@ def get_users(
 @router.post(
     '/v1/users',
     response_model=UserRead,
+    status_code=201,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -269,6 +270,7 @@ def update_user(
 @router.delete(
     '/v1/users/{user_id}',
     response_model=None,
+    status_code=204,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},

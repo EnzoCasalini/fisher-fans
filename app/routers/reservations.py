@@ -93,6 +93,7 @@ def get_reservations(
 
 @router.post(
     '/v1/reservations',
+    status_code=201,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -214,6 +215,7 @@ def update_reservation(reservation_id: str, updated_reservation: PydanticReserva
 @router.delete(
     '/v1/reservations/{reservation_id}',
     response_model=None,
+    status_code=204,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
