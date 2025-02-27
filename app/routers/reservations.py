@@ -238,4 +238,4 @@ def delete_reservation(reservation_id: str, db: Session = Depends(get_db)):
 
     db.delete(reservation)
     db.commit()
-    return {"message": "Reservation deleted successfully"}
+    return None
