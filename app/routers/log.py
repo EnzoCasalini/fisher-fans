@@ -25,8 +25,8 @@ def get_user_log(user_id: str = Path(...), db: Session = Depends(get_db)) -> Pyd
         raise HTTPException(status_code=404, detail="Log not found")
     return PydanticLog.model_validate(log)
 
-@router.post("/v1/log/{user_id}", response_model=None, status_code=201)
-def create_user_log(user_id: str = Path(...), db: Session = Depends(get_db)) -> None:
+@router.post("/v1/log/{user_id}", response_model=PydanticLog, status_code=201)
+def create_user_log(user_id: str = Path(...), db: Session = Depends(get_db)) -> PydanticLog:
     """
     Create a fishing log for a user
     """
@@ -38,7 +38,7 @@ def create_user_log(user_id: str = Path(...), db: Session = Depends(get_db)) -> 
     db.add(db_log)
     db.commit()
     db.refresh(db_log)
-    return None
+    return PydanticLog.from_orm(db_log)
 
 @router.get("/v1/log/{user_id}/pages", response_model=List[PydanticPage])
 def get_log_pages(user_id: str = Path(...), db: Session = Depends(get_db)) -> List[PydanticPage]:

@@ -8,7 +8,7 @@ import uuid
 from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
-from app.models import Boat as PydanticBoat
+from app.models import Boat as PydanticBoat, Boat
 from app.models_sqlalchemy import Boat as SQLAlchemyBoat
 from app.models_sqlalchemy import User as SQLAlchemyUser
 
@@ -75,7 +75,7 @@ def get_boats(
 
     return [PydanticBoat.from_orm(boat) for boat in boats]
 @router.post('/v1/boats', response_model=None)
-def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> None:
+def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> Boat:
     """
     Create a new boat, but only if the user has a boat license
     """
@@ -99,6 +99,8 @@ def create_boat(boat: PydanticBoat, db: Session = Depends(get_db)) -> None:
     db.add(db_boat)
     db.commit()
     db.refresh(db_boat)
+    return PydanticBoat.from_orm(db_boat)
+
 
 @router.get('/v1/boats/bbox', response_model=List[PydanticBoat])
 def get_boats_by_bbox(
@@ -139,7 +141,7 @@ def get_boat_by_id(boat_id: str, db: Session = Depends(get_db)) -> PydanticBoat:
 
 @router.put(
     '/v1/boats/{boat_id}',
-    response_model=None,
+    response_model=PydanticBoat,
     responses={
         '400': {'model': Error},
         '401': {'model': Error},
@@ -151,7 +153,7 @@ def get_boat_by_id(boat_id: str, db: Session = Depends(get_db)) -> PydanticBoat:
 )
 def update_boat(
     boat_id: str, boat: PydanticBoat, db: Session = Depends(get_db)
-) -> Optional[Error]:
+) -> PydanticBoat:
     """
     Edit a boat.
     """
@@ -168,7 +170,7 @@ def update_boat(
 
     db.commit()
     db.refresh(db_boat)
-    return None
+    return PydanticBoat.from_orm(db_boat)
 
 
 @router.delete(

@@ -290,14 +290,14 @@ def update_user(
 def delete_user(
     user_id: str,
     db: Session = Depends(get_db),
-    current_user: SQLAlchemyUser = Depends(get_current_user)
+    # current_user: SQLAlchemyUser = Depends(get_current_user)
 ) -> None:
     user = db.query(SQLAlchemyUser).filter(SQLAlchemyUser.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    if user.reservations:
-        raise HTTPException(status_code=409, detail="Cannot delete user with active reservations.")
+    # if user.reservations:
+    #     raise HTTPException(status_code=409, detail="Cannot delete user with active reservations.")
 
     # Anonymisation des données personnelles
     user.login = f"anonymised_{user.id}"
