@@ -110,6 +110,11 @@ def get_boats_by_bbox(
     lon_max: float = Query(..., description="Maximum longitude"),
     db: Session = Depends(get_db),
 ) -> List[PydanticBoat]:
+    if lat_min < -90 or lat_max < -90 or lon_min < -180 or lon_max < -180:
+        raise HTTPException(status_code=400, detail="Latitude must be ≥ -90 and longitude must be ≥ -180.")
+    if lat_min > 90 or lat_max > 90 or lon_min > 180 or lon_max > 180:
+        raise HTTPException(status_code=400, detail="Latitude must be ≤ 90 and longitude must be ≤ 180.")
+
     if lat_min > lat_max or lon_min > lon_max:
         raise HTTPException(status_code=400, detail="Invalid bounding box: lat_min must be ≤ lat_max and lon_min ≤ lon_max")
 
