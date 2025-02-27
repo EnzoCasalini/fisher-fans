@@ -20,13 +20,6 @@ from ..dependencies import get_db, Error
 import json
 router = APIRouter(tags=['Users'])
 
-
-# Endpoint protégé : récupérer l'utilisateur connecté
-@router.get("/v1/users/me", response_model=UserRead, summary="Get the current user's information.")
-def read_users_me(current_user: SQLAlchemyUser = Depends(get_current_user)):
-    return UserRead.from_orm(current_user)
-
-
 # Endpoint public : récupérer la liste des utilisateurs
 @router.get(
     '/v1/users',

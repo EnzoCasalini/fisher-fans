@@ -142,25 +142,6 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /v1/users/me:
-    get:
-      summary: "Get the current user's information"
-      tags:
-        - Users
-      responses:
-        "200":
-          description: Current user's information
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/User"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
   /v1/boats:
     get:
       summary: "Get the list of boats"
@@ -712,9 +693,9 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /v1/log/{userId}/{pageId}:
-    put:
-      summary: "Edit a log page"
+  /v1/log/{userId}/pages/{page_id}:
+    get:
+      summary: "Get a page of a user's fishing log"
       tags:
         - Log
       parameters:
@@ -723,7 +704,40 @@ paths:
           required: true
           schema:
             type: string
-        - name: pageId
+        - name: page_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Page details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Page"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+    put:
+      summary: "Edit a page of a user's fishing log"
+      tags:
+        - Log
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page_id
           in: path
           required: true
           schema:
@@ -737,6 +751,10 @@ paths:
       responses:
         "200":
           description: Page successfully edited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Page"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -747,8 +765,9 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalServerError"
+
     delete:
-      summary: "Delete a log page"
+      summary: "Delete a page from a user's fishing log"
       tags:
         - Log
       parameters:
@@ -757,7 +776,7 @@ paths:
           required: true
           schema:
             type: string
-        - name: pageId
+        - name: page_id
           in: path
           required: true
           schema:
