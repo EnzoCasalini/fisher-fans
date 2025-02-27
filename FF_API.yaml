@@ -308,6 +308,7 @@ paths:
   /v1/boats/bbox:
     get:
       summary: "Get boats within a bounding box"
+      description: "This endpoint is used to get boats within a bounding box. The bounding box is defined by the minimum and maximum latitude and longitude. The bounding box is in the format of a rectangle on the map."
       tags:
         - Boats
       parameters:
