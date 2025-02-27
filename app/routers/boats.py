@@ -198,4 +198,3 @@ def delete_boat(boat_id: str, db: Session = Depends(get_db)) -> Optional[Error]:
 
     db.delete(db_boat)
     db.commit()
-    return None

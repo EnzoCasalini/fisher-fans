@@ -241,5 +241,3 @@ def delete_v1_trips_trip_id(
     
     db.delete(db_trip)
     db.commit()
-
-    return None

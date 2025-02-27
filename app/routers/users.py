@@ -302,4 +302,3 @@ def delete_user(
     user.isAnonymised = True
 
     db.commit()
-    return None
