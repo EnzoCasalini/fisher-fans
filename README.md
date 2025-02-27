@@ -1,25 +1,25 @@
-# Fisher Fans API
+# 🎣 Fisher Fans API
 
 Fisher Fans API is a RESTful API designed for managing users, boats, trips, reservations, and logs. It provides endpoints for creating, retrieving, updating, and deleting resources related to fishing activities.
 
-## Table of Contents
+## 📚 Table of Contents
 
-- [Features](#features)
-- [Installation](#installation)
-- [Usage](#usage)
-- [API Endpoints](#api-endpoints)
-- [Contributing](#contributing)
-- [License](#license)
+- [✨ Features](#features)
+- [⚙️ Installation](#installation)
+- [🚀 Usage](#usage)
+- [🔗 API Endpoints](#api-endpoints)
+- [🤝 Contributing](#contributing)
+- [📜 License](#license)
 
-## Features
+## ✨ Features
 
-- User management: Create, retrieve, update, and delete users.
-- Boat management: Manage boats with filtering options.
-- Trip management: Organize and manage fishing trips.
-- Reservation management: Handle reservations for trips.
-- Log management: Maintain logs of fishing activities.
+- 👤 User management: Create, retrieve, update, and delete users.
+- ⛵ Boat management: Manage boats with filtering options.
+- 🗺️ Trip management: Organize and manage fishing trips.
+- 📅 Reservation management: Handle reservations for trips.
+- 📖 Log management: Maintain logs of fishing activities.
 
-## Installation
+## ⚙️ Installation
 
 To set up the project locally, follow these steps:
 
@@ -46,15 +46,15 @@ To set up the project locally, follow these steps:
    uvicorn app.main:app --reload
    ```
 
-## Usage
+## 🚀 Usage
 
 Once the application is running, you can access the API documentation at `http://localhost:8000/docs` for interactive exploration of the endpoints.
 
-## API Endpoints
+## 🔗 API Endpoints
 
 Here are some of the key endpoints available in the API:
 
-- **Users**
+- **Users** 👥
 
   - `GET /v1/users`: Retrieve a list of users.
   - `POST /v1/users`: Create a new user.
@@ -62,7 +62,7 @@ Here are some of the key endpoints available in the API:
   - `PUT /v1/users/{userId}`: Update a user by ID.
   - `DELETE /v1/users/{userId}`: Delete a user by ID.
 
-- **Boats**
+- **Boats** 🚤
 
   - `GET /v1/boats`: Retrieve a list of boats.
   - `POST /v1/boats`: Create a new boat.
@@ -71,7 +71,7 @@ Here are some of the key endpoints available in the API:
   - `DELETE /v1/boats/{boatId}`: Delete a boat by ID.
   - `GET /v1/boats/bbox`: Retrieve boats within a bounding box.
 
-- **Trips**
+- **Trips** 🛳️
 
   - `GET /v1/trips`: Retrieve a list of trips.
   - `POST /v1/trips`: Create a new trip.
@@ -79,7 +79,7 @@ Here are some of the key endpoints available in the API:
   - `PUT /v1/trips/{tripId}`: Update a trip by ID.
   - `DELETE /v1/trips/{tripId}`: Delete a trip by ID.
 
-- **Reservations**
+- **Reservations** 📆
 
   - `GET /v1/reservations`: Retrieve a list of reservations.
   - `POST /v1/reservations`: Create a new reservation.
@@ -87,17 +87,17 @@ Here are some of the key endpoints available in the API:
   - `PUT /v1/reservations/{reservationId}`: Update a reservation by ID.
   - `DELETE /v1/reservations/{reservationId}`: Delete a reservation by ID.
 
-- **Logs**
+- **Logs** 📜
   - `GET /v1/log/{userId}`: Retrieve a user's log.
   - `POST /v1/log/{userId}`: Create a log for a user.
   - `GET /v1/log/{userId}/pages/{page_id}`: Retrieve a page of a user's log.
   - `PUT /v1/log/{userId}/pages/{page_id}`: Update a page of a user's log.
   - `DELETE /v1/log/{userId}/pages/{page_id}`: Delete a page of a user's log.
 
-## Contributing
+## 🤝 Contributing
 
 Contributions are welcome! Please fork the repository and submit a pull request for any improvements or bug fixes.
 
-## License
+## 📜 License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
