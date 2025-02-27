@@ -7,6 +7,9 @@ from sqlalchemy.orm import Session
 
 from app.models import UserRead, UserCreate, Error
 from app.models_sqlalchemy import User as SQLAlchemyUser
+from app.models import Boat as PydanticBoat
+from app.models import Trip as PydanticTrip
+from app.models import Reservation as PydanticReservation
 from app.routers.auth import get_current_user
 from app.auth.auth_utils import get_password_hash
 from app.models_sqlalchemy import (
@@ -14,7 +17,7 @@ from app.models_sqlalchemy import (
 )
 
 from ..dependencies import get_db, Error
-
+import json
 router = APIRouter(tags=['Users'])
 
 
@@ -68,39 +71,33 @@ def get_users(
         user_dict['id'] = str(user.id)
 
         # Add boats
-        user_dict["boats"] = [
-            {
-                "id": boat.id,
-                "name": boat.name,
-                "brand": boat.brand,
-                "homePort": boat.homePort,
-            }
-            for boat in user.boats
-        ] if user.boats else None
+        user_dict["boats"] = [PydanticBoat.from_orm(boat) for boat in user.boats] if user.boats else None
 
         # Add trips
-        user_dict["trips"] = [
-            {
-                "id": trip.id,
-                "title": trip.title,
-                "tripType": trip.tripType,
-                "price": trip.price,
-            }
-            for trip in user.trips
-        ] if user.trips else None
+        user_dict["trips"] = (
+            [
+                PydanticTrip(
+                    **{**trip.__dict__,
+                       'startDates': json.loads(trip.startDates) if trip.startDates else [],
+                       'endDates': json.loads(trip.endDates) if trip.endDates else [],
+                       'departureTimes': json.loads(trip.departureTimes) if trip.departureTimes else [],
+                       'endTimes': json.loads(trip.endTimes) if trip.endTimes else []
+                       }
+                ) for trip in user.trips
+            ] if user.trips else []
+        )
 
         # Add reservations
-        user_dict["reservations"] = [
-            {
-                "id": res.id,
-                "tripId": res.tripId,
-                "date": res.date,
-                "reservedSeats": res.reservedSeats,
-                "totalPrice": res.totalPrice,
-                "userId": res.userId,
-            }
-            for res in user.reservations
-        ]
+
+        user_dict["reservations"] = (
+            [
+                PydanticReservation(
+                    **{**res.__dict__,
+                       'date': res.date.isoformat() if res.date else None  # 🛠 Convertir la date en string ISO
+                       }
+                ) for res in user.reservations
+            ] if user.reservations else []
+        )
 
         # Add fishing log pages
         user_dict["log"] = {
@@ -185,39 +182,33 @@ def get_user(user_id: str, db: Session = Depends(get_db)) -> UserRead:
     user_dict['id'] = str(user.id)
 
     # Add boats
-    user_dict["boats"] = [
-        {
-            "id": boat.id,
-            "name": boat.name,
-            "brand": boat.brand,
-            "homePort": boat.homePort,
-        }
-        for boat in user.boats
-    ] if user.boats else None
+    user_dict["boats"] = [PydanticBoat.from_orm(boat) for boat in user.boats] if user.boats else None
 
     # Add trips
-    user_dict["trips"] = [
-        {
-            "id": trip.id,
-            "title": trip.title,
-            "tripType": trip.tripType,
-            "price": trip.price,
-        }
-        for trip in user.trips
-    ] if user.trips else None
+    user_dict["trips"] = (
+        [
+            PydanticTrip(
+                **{**trip.__dict__,
+                   'startDates': json.loads(trip.startDates) if trip.startDates else [],
+                   'endDates': json.loads(trip.endDates) if trip.endDates else [],
+                   'departureTimes': json.loads(trip.departureTimes) if trip.departureTimes else [],
+                   'endTimes': json.loads(trip.endTimes) if trip.endTimes else []
+                   }
+            ) for trip in user.trips
+        ] if user.trips else []
+    )
 
     # Add reservations
-    user_dict["reservations"] = [
-        {
-            "id": res.id,
-            "tripId": res.tripId,
-            "date": res.date,
-            "reservedSeats": res.reservedSeats,
-            "totalPrice": res.totalPrice,
-            "userId": res.userId,
-        }
-        for res in user.reservations
-    ]
+
+    user_dict["reservations"] = (
+        [
+            PydanticReservation(
+                **{**res.__dict__,
+                   'date': res.date.isoformat() if res.date else None  # 🛠 Convertir la date en string ISO
+                   }
+            ) for res in user.reservations
+        ] if user.reservations else []
+    )
 
     # Add fishing log pages
     user_dict["log"] = {
