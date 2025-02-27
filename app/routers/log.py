@@ -50,6 +50,16 @@ def get_log_pages(user_id: str = Path(...), db: Session = Depends(get_db)) -> Li
         raise HTTPException(status_code=404, detail="Log not found")
     return [PydanticPage.model_validate(page) for page in log.pages]
 
+@router.get("/v1/log/{user_id}/pages/{page_id}", response_model=PydanticPage)
+def get_log_page(user_id: str = Path(...), page_id: str = Path(...), db: Session = Depends(get_db)) -> PydanticPage:
+    """
+    Get a page of a user's fishing log
+    """
+    page = db.query(SQLAlchemyPage).filter(SQLAlchemyPage.id == page_id, SQLAlchemyPage.log.has(user_id=user_id)).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+    return PydanticPage.model_validate(page)
+
 @router.post("/v1/log/{user_id}/pages", response_model=PydanticPage, status_code=201)
 def add_log_page(
     user_id: str = Path(...),
