@@ -55,6 +55,7 @@ Once the application is running, you can access the API documentation at `http:/
 Here are some of the key endpoints available in the API:
 
 - **Users**
+
   - `GET /v1/users`: Retrieve a list of users.
   - `POST /v1/users`: Create a new user.
   - `GET /v1/users/{userId}`: Retrieve a user by ID.
@@ -62,6 +63,7 @@ Here are some of the key endpoints available in the API:
   - `DELETE /v1/users/{userId}`: Delete a user by ID.
 
 - **Boats**
+
   - `GET /v1/boats`: Retrieve a list of boats.
   - `POST /v1/boats`: Create a new boat.
   - `GET /v1/boats/{boatId}`: Retrieve a boat by ID.
@@ -70,6 +72,7 @@ Here are some of the key endpoints available in the API:
   - `GET /v1/boats/bbox`: Retrieve boats within a bounding box.
 
 - **Trips**
+
   - `GET /v1/trips`: Retrieve a list of trips.
   - `POST /v1/trips`: Create a new trip.
   - `GET /v1/trips/{tripId}`: Retrieve a trip by ID.
@@ -77,6 +80,7 @@ Here are some of the key endpoints available in the API:
   - `DELETE /v1/trips/{tripId}`: Delete a trip by ID.
 
 - **Reservations**
+
   - `GET /v1/reservations`: Retrieve a list of reservations.
   - `POST /v1/reservations`: Create a new reservation.
   - `GET /v1/reservations/{reservationId}`: Retrieve a reservation by ID.
